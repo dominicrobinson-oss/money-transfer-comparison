@@ -9,71 +9,75 @@ import Link from "next/link";
 
 const LIVE_FETCH_TIMEOUT_MS = 2000;
 const DEFAULT_SEND_AMOUNT = 100;
+const FROM_CURRENCY = "GBP";
+const TO_CURRENCY = "GHS";
 // Static timestamp for mock quotes to ensure deterministic server rendering
 const MOCK_TIMESTAMP = "2025-02-04T12:00:00Z";
 
-// Mock quotes
+// Mock quotes for GBP → GHS
 const MOCK_QUOTES = {
   wise: {
     providerId: "wise",
     fromCurrency: "GBP" as const,
-    toCurrency: "NGN" as const,
+    toCurrency: "GHS" as const,
     sendAmount: DEFAULT_SEND_AMOUNT,
-    rate: 2050.5,
+    rate: 9.25,
     fee: 3.5,
-    receiveAmount: (DEFAULT_SEND_AMOUNT - 3.5) * 2050.5,
+    receiveAmount: (DEFAULT_SEND_AMOUNT - 3.5) * 9.25,
     fetchedAt: MOCK_TIMESTAMP,
     source: "mock" as const,
   },
   remitly: {
     providerId: "remitly",
     fromCurrency: "GBP" as const,
-    toCurrency: "NGN" as const,
+    toCurrency: "GHS" as const,
     sendAmount: DEFAULT_SEND_AMOUNT,
-    rate: 2040.75,
+    rate: 9.18,
     fee: 2.99,
-    receiveAmount: (DEFAULT_SEND_AMOUNT - 2.99) * 2040.75,
+    receiveAmount: (DEFAULT_SEND_AMOUNT - 2.99) * 9.18,
     fetchedAt: MOCK_TIMESTAMP,
     source: "mock" as const,
   },
   worldremit: {
     providerId: "worldremit",
     fromCurrency: "GBP" as const,
-    toCurrency: "NGN" as const,
+    toCurrency: "GHS" as const,
     sendAmount: DEFAULT_SEND_AMOUNT,
-    rate: 2035.25,
+    rate: 9.12,
     fee: 3.99,
-    receiveAmount: (DEFAULT_SEND_AMOUNT - 3.99) * 2035.25,
+    receiveAmount: (DEFAULT_SEND_AMOUNT - 3.99) * 9.12,
     fetchedAt: MOCK_TIMESTAMP,
     source: "mock" as const,
   },
   sendwave: {
     providerId: "sendwave",
     fromCurrency: "GBP" as const,
-    toCurrency: "NGN" as const,
+    toCurrency: "GHS" as const,
     sendAmount: DEFAULT_SEND_AMOUNT,
-    rate: 2055.0,
+    rate: 9.30,
     fee: 0,
-    receiveAmount: DEFAULT_SEND_AMOUNT * 2055.0,
+    receiveAmount: DEFAULT_SEND_AMOUNT * 9.30,
     fetchedAt: MOCK_TIMESTAMP,
     source: "mock" as const,
   },
   taptapsend: {
     providerId: "taptapsend",
     fromCurrency: "GBP" as const,
-    toCurrency: "NGN" as const,
+    toCurrency: "GHS" as const,
     sendAmount: DEFAULT_SEND_AMOUNT,
-    rate: 2045.0,
+    rate: 9.20,
     fee: 1.99,
-    receiveAmount: (DEFAULT_SEND_AMOUNT - 1.99) * 2045.0,
+    receiveAmount: (DEFAULT_SEND_AMOUNT - 1.99) * 9.20,
     fetchedAt: MOCK_TIMESTAMP,
     source: "mock" as const,
   },
 };
 
-export default function GbpToNgnPage() {
+export default function GbpToGhsPage() {
   const [sendAmount, setSendAmount] = useState<number>(DEFAULT_SEND_AMOUNT);
-  const [quotes, setQuotes] = useState<Quote[]>(Object.values(MOCK_QUOTES));
+  const [quotes, setQuotes] = useState<Quote[]>(
+    Object.values(MOCK_QUOTES) as Quote[]
+  );
   const [loadingProviders, setLoadingProviders] = useState<Set<string>>(
     new Set(["wise", "remitly"])
   );
@@ -107,12 +111,15 @@ export default function GbpToNgnPage() {
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), LIVE_FETCH_TIMEOUT_MS);
-        
-        const res = await fetch("/api/quotes/live?from=GBP&to=NGN", {
-          signal: controller.signal,
-        });
+
+        const res = await fetch(
+          `/api/quotes/live?from=${FROM_CURRENCY}&to=${TO_CURRENCY}`,
+          {
+            signal: controller.signal,
+          }
+        );
         clearTimeout(timeout);
-        
+
         if (res.ok) {
           const response = await res.json();
           if (response.status === "success" && response.data && Array.isArray(response.data)) {
@@ -158,7 +165,7 @@ export default function GbpToNgnPage() {
     <main className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-          Best GBP to NGN rate today
+          Best GBP to GHS rate today
         </h1>
         
         {/* Amount Input */}
@@ -180,7 +187,7 @@ export default function GbpToNgnPage() {
           </div>
         </div>
 
-        <p className="text-gray-600 mb-6">Sending £{formatNumber(sendAmount, 2)} to Nigeria</p>
+        <p className="text-gray-600 mb-6">Sending £{formatNumber(sendAmount, 2)} to Ghana</p>
 
         {loadingProviders.size > 0 && (
           <div className="mb-4 flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded">
@@ -239,7 +246,7 @@ export default function GbpToNgnPage() {
                         </div>
                       </td>
                       <td className="px-4 py-4 text-right font-semibold text-gray-900">
-                        ₦{formatNumberLocale(quote.receiveAmount, 2)}
+                        ₵{formatNumberLocale(quote.receiveAmount, 2)}
                       </td>
                       <td className="px-4 py-4 text-right text-gray-700">
                         {formatNumber(quote.rate, 2)}
@@ -249,7 +256,7 @@ export default function GbpToNgnPage() {
                       </td>
                       <td className="px-4 py-4 text-right">
                         <Link
-                          href={`/go/provider/${quote.providerId}?from=GBP&to=NGN&amount=${sendAmount}`}
+                          href={`/go/provider/${quote.providerId}?from=${FROM_CURRENCY}&to=${TO_CURRENCY}&amount=${sendAmount}`}
                           className="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition disabled:opacity-50"
                         >
                           Send with {provider?.name}
@@ -296,23 +303,23 @@ export default function GbpToNgnPage() {
           
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Which provider offers the best GBP to NGN rate?</h3>
-              <p className="text-gray-700">The best rate varies daily based on market conditions. Our comparison page shows live rates from trusted providers updated regularly. Most users find Wise and Remitly offer competitive rates with low fees.</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Which provider offers the best GBP to GHS rate?</h3>
+              <p className="text-gray-700">The best rate varies daily based on market conditions. Our comparison page shows live rates from trusted providers updated regularly. Most users find Wise and Remitly offer competitive rates with low fees for Ghana transfers.</p>
             </div>
             
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">How much does it cost to send money GBP to Nigeria?</h3>
-              <p className="text-gray-700">Fees depend on the provider and transfer method. Wise typically charges £1–3 for transfers, while Remitly charges 2–4% of the transfer amount. Check the comparison table above for current rates and fees.</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">How much does it cost to send money to Ghana?</h3>
+              <p className="text-gray-700">Fees depend on the provider and transfer method. Wise typically charges £1–3 for transfers, while Remitly charges 2–4% of the transfer amount. Check the comparison table above for current rates and fees to Ghana.</p>
             </div>
             
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">How long does a GBP to NGN transfer take?</h3>
-              <p className="text-gray-700">Most providers deliver within 1–2 business days. Wise is known for faster transfers, often completing within 24 hours. Transfer speed may vary based on bank processing times and recipient bank.</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">How long does a GBP to GHS transfer take?</h3>
+              <p className="text-gray-700">Most providers deliver within 1–2 business days. Wise is known for faster transfers, often completing within 24 hours. Transfer speed may vary based on bank processing times and recipient bank in Ghana.</p>
             </div>
             
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Are these providers safe and regulated?</h3>
-              <p className="text-gray-700">Yes. All providers listed are regulated by the Financial Conduct Authority (FCA) in the UK and operate under strict compliance standards. Always verify provider credentials before sending money.</p>
+              <p className="text-gray-700">Yes. All providers listed are regulated by the Financial Conduct Authority (FCA) in the UK and operate under strict compliance standards. Always verify provider credentials before sending money to Ghana.</p>
             </div>
           </div>
         </section>

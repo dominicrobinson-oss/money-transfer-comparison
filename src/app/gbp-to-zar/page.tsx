@@ -9,81 +9,80 @@ import Link from "next/link";
 
 const LIVE_FETCH_TIMEOUT_MS = 2000;
 const DEFAULT_SEND_AMOUNT = 100;
-// Static timestamp for mock quotes to ensure deterministic server rendering
+const FROM_CURRENCY = "GBP";
+const TO_CURRENCY = "ZAR";
 const MOCK_TIMESTAMP = "2025-02-04T12:00:00Z";
 
-// Mock quotes
+// Mock quotes for GBP → ZAR
 const MOCK_QUOTES = {
   wise: {
     providerId: "wise",
     fromCurrency: "GBP" as const,
-    toCurrency: "NGN" as const,
+    toCurrency: "ZAR" as const,
     sendAmount: DEFAULT_SEND_AMOUNT,
-    rate: 2050.5,
+    rate: 26.45,
     fee: 3.5,
-    receiveAmount: (DEFAULT_SEND_AMOUNT - 3.5) * 2050.5,
+    receiveAmount: (DEFAULT_SEND_AMOUNT - 3.5) * 26.45,
     fetchedAt: MOCK_TIMESTAMP,
     source: "mock" as const,
   },
   remitly: {
     providerId: "remitly",
     fromCurrency: "GBP" as const,
-    toCurrency: "NGN" as const,
+    toCurrency: "ZAR" as const,
     sendAmount: DEFAULT_SEND_AMOUNT,
-    rate: 2040.75,
+    rate: 26.20,
     fee: 2.99,
-    receiveAmount: (DEFAULT_SEND_AMOUNT - 2.99) * 2040.75,
+    receiveAmount: (DEFAULT_SEND_AMOUNT - 2.99) * 26.20,
     fetchedAt: MOCK_TIMESTAMP,
     source: "mock" as const,
   },
   worldremit: {
     providerId: "worldremit",
     fromCurrency: "GBP" as const,
-    toCurrency: "NGN" as const,
+    toCurrency: "ZAR" as const,
     sendAmount: DEFAULT_SEND_AMOUNT,
-    rate: 2035.25,
+    rate: 26.05,
     fee: 3.99,
-    receiveAmount: (DEFAULT_SEND_AMOUNT - 3.99) * 2035.25,
+    receiveAmount: (DEFAULT_SEND_AMOUNT - 3.99) * 26.05,
     fetchedAt: MOCK_TIMESTAMP,
     source: "mock" as const,
   },
   sendwave: {
     providerId: "sendwave",
     fromCurrency: "GBP" as const,
-    toCurrency: "NGN" as const,
+    toCurrency: "ZAR" as const,
     sendAmount: DEFAULT_SEND_AMOUNT,
-    rate: 2055.0,
+    rate: 26.55,
     fee: 0,
-    receiveAmount: DEFAULT_SEND_AMOUNT * 2055.0,
+    receiveAmount: DEFAULT_SEND_AMOUNT * 26.55,
     fetchedAt: MOCK_TIMESTAMP,
     source: "mock" as const,
   },
   taptapsend: {
     providerId: "taptapsend",
     fromCurrency: "GBP" as const,
-    toCurrency: "NGN" as const,
+    toCurrency: "ZAR" as const,
     sendAmount: DEFAULT_SEND_AMOUNT,
-    rate: 2045.0,
+    rate: 26.35,
     fee: 1.99,
-    receiveAmount: (DEFAULT_SEND_AMOUNT - 1.99) * 2045.0,
+    receiveAmount: (DEFAULT_SEND_AMOUNT - 1.99) * 26.35,
     fetchedAt: MOCK_TIMESTAMP,
     source: "mock" as const,
   },
 };
 
-export default function GbpToNgnPage() {
+export default function GbpToZarPage() {
   const [sendAmount, setSendAmount] = useState<number>(DEFAULT_SEND_AMOUNT);
-  const [quotes, setQuotes] = useState<Quote[]>(Object.values(MOCK_QUOTES));
+  const [quotes, setQuotes] = useState<Quote[]>(
+    Object.values(MOCK_QUOTES) as Quote[]
+  );
   const [loadingProviders, setLoadingProviders] = useState<Set<string>>(
     new Set(["wise", "remitly"])
   );
   const [hasLiveQuotes, setHasLiveQuotes] = useState(false);
   const [formattedLastUpdated, setFormattedLastUpdated] = useState<string>("—");
 
-  /**
-   * Recalculate quotes based on new send amount
-   * Formula: receiveAmount = (sendAmount - fee) * rate
-   */
   const getRecalculatedQuotes = (amount: number): Quote[] => {
     if (amount <= 0) return quotes;
     
@@ -97,18 +96,16 @@ export default function GbpToNgnPage() {
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value) || DEFAULT_SEND_AMOUNT;
     setSendAmount(value);
-    // Recalculate quotes instantly based on new amount
     setQuotes(getRecalculatedQuotes(value));
   };
 
   useEffect(() => {
-    // Fetch live quotes from API in background without blocking
     const fetchLiveQuotes = async () => {
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), LIVE_FETCH_TIMEOUT_MS);
         
-        const res = await fetch("/api/quotes/live?from=GBP&to=NGN", {
+        const res = await fetch(`/api/quotes/live?from=${FROM_CURRENCY}&to=${TO_CURRENCY}`, {
           signal: controller.signal,
         });
         clearTimeout(timeout);
@@ -116,7 +113,6 @@ export default function GbpToNgnPage() {
         if (res.ok) {
           const response = await res.json();
           if (response.status === "success" && response.data && Array.isArray(response.data)) {
-            // API returns array of quotes, merge with mocks
             setQuotes((prev) => {
               const liveQuotes = response.data;
               return prev.map((q) => {
@@ -134,7 +130,6 @@ export default function GbpToNgnPage() {
     fetchLiveQuotes();
   }, []);
 
-  // Format timestamp client-side only to avoid hydration mismatch
   useEffect(() => {
     const rankedQuotes = rankQuotes(quotes);
     const liveQuote = rankedQuotes.find((quote) => quote.source === "live");
@@ -158,10 +153,9 @@ export default function GbpToNgnPage() {
     <main className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-          Best GBP to NGN rate today
+          Best GBP to ZAR rate today
         </h1>
         
-        {/* Amount Input */}
         <div className="mb-6 bg-white rounded-lg shadow p-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             How much do you want to send?
@@ -180,7 +174,7 @@ export default function GbpToNgnPage() {
           </div>
         </div>
 
-        <p className="text-gray-600 mb-6">Sending £{formatNumber(sendAmount, 2)} to Nigeria</p>
+        <p className="text-gray-600 mb-6">Sending £{formatNumber(sendAmount, 2)} to South Africa</p>
 
         {loadingProviders.size > 0 && (
           <div className="mb-4 flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded">
@@ -213,7 +207,6 @@ export default function GbpToNgnPage() {
                 {rankQuotes(quotes).map((quote: RankedQuote, index: number) => {
                   const provider = providers.find((p) => p.id === quote.providerId);
                   const isLoading = loadingProviders.has(quote.providerId);
-                  // Use semantic key when data is complete, fallback to index
                   const itemKey = quote.providerId && quote.fromCurrency && quote.toCurrency
                     ? `${quote.providerId}-${quote.fromCurrency}-${quote.toCurrency}`
                     : index;
@@ -239,7 +232,7 @@ export default function GbpToNgnPage() {
                         </div>
                       </td>
                       <td className="px-4 py-4 text-right font-semibold text-gray-900">
-                        ₦{formatNumberLocale(quote.receiveAmount, 2)}
+                        R{formatNumberLocale(quote.receiveAmount, 2)}
                       </td>
                       <td className="px-4 py-4 text-right text-gray-700">
                         {formatNumber(quote.rate, 2)}
@@ -249,7 +242,7 @@ export default function GbpToNgnPage() {
                       </td>
                       <td className="px-4 py-4 text-right">
                         <Link
-                          href={`/go/provider/${quote.providerId}?from=GBP&to=NGN&amount=${sendAmount}`}
+                          href={`/go/provider/${quote.providerId}?from=${FROM_CURRENCY}&to=${TO_CURRENCY}&amount=${sendAmount}`}
                           className="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition disabled:opacity-50"
                         >
                           Send with {provider?.name}
@@ -289,24 +282,22 @@ export default function GbpToNgnPage() {
             </li>
           </ul>
         </section>
-        
-        {/* FAQ Section */}
         <section className="mt-12 border-t pt-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Frequently Asked Questions</h2>
           
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Which provider offers the best GBP to NGN rate?</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Which provider offers the best GBP to ZAR rate?</h3>
               <p className="text-gray-700">The best rate varies daily based on market conditions. Our comparison page shows live rates from trusted providers updated regularly. Most users find Wise and Remitly offer competitive rates with low fees.</p>
             </div>
             
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">How much does it cost to send money GBP to Nigeria?</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">How much does it cost to send money GBP to South Africa?</h3>
               <p className="text-gray-700">Fees depend on the provider and transfer method. Wise typically charges £1–3 for transfers, while Remitly charges 2–4% of the transfer amount. Check the comparison table above for current rates and fees.</p>
             </div>
             
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">How long does a GBP to NGN transfer take?</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">How long does a GBP to ZAR transfer take?</h3>
               <p className="text-gray-700">Most providers deliver within 1–2 business days. Wise is known for faster transfers, often completing within 24 hours. Transfer speed may vary based on bank processing times and recipient bank.</p>
             </div>
             
