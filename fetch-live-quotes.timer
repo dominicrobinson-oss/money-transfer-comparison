@@ -1,0 +1,17 @@
+[Unit]
+Description=Fetch live money transfer quotes every 10 minutes
+Documentation=https://github.com/your-org/money-transfer-comparison
+Requires=fetch-live-quotes.service
+
+[Timer]
+# Run 1 minute after boot
+OnBootSec=1min
+
+# Run every 10 minutes
+OnUnitActiveSec=10min
+
+# Keep track of state even if system was powered off
+Persistent=true
+
+[Install]
+WantedBy=timers.target

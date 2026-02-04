@@ -1,0 +1,24 @@
+[Unit]
+Description=Money Transfer Comparison Web Application
+Documentation=https://github.com/your-org/money-transfer-comparison
+After=network.target
+
+[Service]
+Type=simple
+User=app-user
+WorkingDirectory=/opt/money-transfer-comparison
+Environment="NODE_ENV=production"
+Environment="PATH=/opt/money-transfer-comparison/node_modules/.bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/usr/bin/npm start
+Restart=on-failure
+RestartSec=5s
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/money-transfer-comparison/data
+
+[Install]
+WantedBy=multi-user.target

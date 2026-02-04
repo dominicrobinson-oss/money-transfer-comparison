@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:-sqlite:///app/data/quotes.db}
+    volumes:
+      - ./data:/app/data
+    labels:
+      ofelia.enabled: "true"
+      ofelia.job-exec.fetch-live-quotes.schedule: "@every 10m"
+      ofelia.job-exec.fetch-live-quotes.command: npm run fetch:live-quotes
+
+  scheduler:
+    image: mcuadros/ofelia:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: daemon --docker
+    depends_on:
+      - app
+
+volumes:
+  data:
