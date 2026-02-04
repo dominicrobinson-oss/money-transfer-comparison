@@ -70,5 +70,13 @@ export async function GET(
   console.log("Provider Click Event:", clickRecord);
 
   // Redirect to provider website
-  return NextResponse.redirect(provider.websiteUrl, { status: 302 });
+  const redirectUrl = provider.affiliateUrl || provider.websiteUrl;
+  const url = new URL(redirectUrl);
+  url.searchParams.set("utm_source", "money-transfer-comparison");
+  url.searchParams.set("utm_medium", "referral");
+  url.searchParams.set(
+    "utm_campaign",
+    `${fromCurrency.toLowerCase()}-${toCurrency.toLowerCase()}`
+  );
+  return NextResponse.redirect(url.toString(), { status: 302 });
 }
