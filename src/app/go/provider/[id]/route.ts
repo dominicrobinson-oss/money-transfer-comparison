@@ -1,0 +1,74 @@
+import { NextRequest, NextResponse } from "next/server";
+import { ProviderClick } from "@/types/core";
+import { logProviderClick } from "@/lib/db";
+import { getProviderById } from "@/lib/providers";
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  console.log("Redirect providerId:", id);
+  const searchParams = request.nextUrl.searchParams;
+  const userAgent = request.headers.get("user-agent") || "unknown";
+  const referrer = request.headers.get("referer");
+
+  // Get query parameters
+  const fromCurrency = searchParams.get("from") || "GBP";
+  const toCurrency = searchParams.get("to") || "NGN";
+  const amount = searchParams.get("amount");
+
+  // Validate provider exists using provider config
+  const provider = getProviderById(id);
+  if (!provider) {
+    return NextResponse.json(
+      { error: "Provider not found" },
+      { status: 404 }
+    );
+  }
+
+  // Validate amount
+  const sendAmount = amount ? parseFloat(amount) : 0;
+  if (!amount || isNaN(sendAmount) || sendAmount <= 0) {
+    return NextResponse.json(
+      { error: "Invalid amount parameter" },
+      { status: 400 }
+    );
+  }
+
+  // Log provider click event
+  const clickEvent: ProviderClick = {
+    providerId: id,
+    fromCurrency: fromCurrency as "GBP",
+    toCurrency: toCurrency as "NGN",
+    sendAmount,
+    clickedAt: new Date().toISOString(),
+    userAgent,
+    referrer,
+  };
+
+  const clickRecord = {
+    event: clickEvent,
+    source: "redirect",
+    createdAt: new Date().toISOString(),
+  };
+
+  try {
+    await logProviderClick({
+      providerId: clickEvent.providerId,
+      fromCurrency: clickEvent.fromCurrency,
+      toCurrency: clickEvent.toCurrency,
+      amount: clickEvent.sendAmount,
+      userAgent: clickEvent.userAgent,
+      referrer: clickEvent.referrer,
+      createdAt: clickEvent.clickedAt,
+    });
+  } catch (error) {
+    console.error("Failed to log provider click:", error);
+  }
+
+  console.log("Provider Click Event:", clickRecord);
+
+  // Redirect to provider website
+  return NextResponse.redirect(provider.websiteUrl, { status: 302 });
+}
