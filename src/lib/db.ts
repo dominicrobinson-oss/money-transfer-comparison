@@ -279,3 +279,144 @@ export function getProviderClickStats(): Promise<
     });
   });
 }
+/**
+ * Analytics: Get top corridors by view count
+ */
+export function getTopCorridorsByViews(): Promise<Array<{ corridor: string; views: number }>> {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      SELECT
+        corridor,
+        COUNT(*) as views
+      FROM telemetry_events
+      WHERE eventType = 'corridor_view' AND corridor IS NOT NULL
+      GROUP BY corridor
+      ORDER BY views DESC
+      LIMIT 10
+    `;
+
+    db.all(sql, [], (err, rows: any[]) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve((rows || []).map((r) => ({ corridor: r.corridor, views: r.views })));
+    });
+  });
+}
+
+/**
+ * Analytics: Get top providers by click count
+ */
+export function getTopProvidersByClicks(): Promise<Array<{ providerId: string; clicks: number }>> {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      SELECT
+        providerId,
+        COUNT(*) as clicks
+      FROM provider_clicks
+      GROUP BY providerId
+      ORDER BY clicks DESC
+    `;
+
+    db.all(sql, [], (err, rows: any[]) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve((rows || []).map((r) => ({ providerId: r.providerId, clicks: r.clicks })));
+    });
+  });
+}
+
+/**
+ * Analytics: Get click-through rate per corridor
+ * CTR = (provider clicks) / (corridor views)
+ */
+export function getCorridorClickThroughRates(): Promise<
+  Array<{ corridor: string; views: number; clicks: number; ctr: number }>
+> {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      SELECT
+        COALESCE(v.corridor, c.corridor) as corridor,
+        COALESCE(v.views, 0) as views,
+        COALESCE(c.clicks, 0) as clicks,
+        CASE
+          WHEN COALESCE(v.views, 0) > 0
+          THEN CAST(COALESCE(c.clicks, 0) AS REAL) / CAST(v.views AS REAL)
+          ELSE 0
+        END as ctr
+      FROM (
+        SELECT corridor, COUNT(*) as views
+        FROM telemetry_events
+        WHERE eventType = 'corridor_view' AND corridor IS NOT NULL
+        GROUP BY corridor
+      ) v
+      LEFT JOIN (
+        SELECT (fromCurrency || '-' || toCurrency) as corridor, COUNT(*) as clicks
+        FROM provider_clicks
+        GROUP BY corridor
+      ) c ON v.corridor = c.corridor
+      ORDER BY ctr DESC
+    `;
+
+    db.all(sql, [], (err, rows: any[]) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(
+        (rows || []).map((r) => ({
+          corridor: r.corridor,
+          views: r.views,
+          clicks: r.clicks,
+          ctr: r.ctr,
+        }))
+      );
+    });
+  });
+}
+
+/**
+ * Analytics: Get most selected transfer methods
+ */
+export function getTopTransferMethods(): Promise<
+  Array<{ method: string; selections: number; percentage: number }>
+> {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      WITH method_counts AS (
+        SELECT
+          eventType as method,
+          COUNT(*) as selections
+        FROM telemetry_events
+        WHERE eventType IN ('method_bank', 'method_card', 'method_cash', 'method_wallet')
+        GROUP BY eventType
+      ),
+      total AS (
+        SELECT SUM(selections) as total_selections FROM method_counts
+      )
+      SELECT
+        REPLACE(method, 'method_', '') as method,
+        selections,
+        CAST(selections AS REAL) / CAST(total_selections AS REAL) * 100 as percentage
+      FROM method_counts, total
+      ORDER BY selections DESC
+    `;
+
+    db.all(sql, [], (err, rows: any[]) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(
+        (rows || []).map((r) => ({
+          method: r.method,
+          selections: r.selections,
+          percentage: r.percentage,
+        }))
+      );
+    });
+  });
+}
