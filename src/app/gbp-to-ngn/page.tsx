@@ -10,6 +10,7 @@ import { formatNumber, formatNumberLocale } from "@/lib/utils/format";
 import { providers } from "@/lib/providers";
 import { trackCorridorView, trackAmountChange, trackCurrencySelect } from "@/lib/telemetry";
 import { getApplicablePromos } from "@/lib/promotions";
+import { getProviderSignals, ProviderSignal } from "@/lib/provider-signals";
 import Link from "next/link";
 
 const FROM_CURRENCY = "GBP" as const;
@@ -92,7 +93,7 @@ export default function GbpToNgnPage() {
   const [formattedLastUpdated, setFormattedLastUpdated] = useState<string>("—");
   const [rateFreshnessLabel, setRateFreshnessLabel] = useState<string>("—");
   const [expandedPromo, setExpandedPromo] = useState<string | null>(null);
-  
+  const [providerSignals, setProviderSignals] = useState<Record<string, ProviderSignal>>({});
   const amountChangeTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const corridorOptions = corridors.filter(
@@ -155,6 +156,23 @@ export default function GbpToNgnPage() {
   // Track corridor view on mount
   useEffect(() => {
     trackCorridorView(FROM_CURRENCY, TO_CURRENCY);
+  }, []);
+
+  // Fetch provider signals from telemetry data
+  useEffect(() => {
+    const fetchProviderSignals = async () => {
+      try {
+        const res = await fetch("/api/provider-stats");
+        if (res.ok) {
+          const stats = await res.json();
+          const signals = getProviderSignals(providers, stats);
+          setProviderSignals(signals);
+        }
+      } catch (error) {
+        console.error("Failed to fetch provider signals:", error);
+      }
+    };
+    fetchProviderSignals();
   }, []);
 
   useEffect(() => {
@@ -445,6 +463,11 @@ export default function GbpToNgnPage() {
                                 {provider.payoutTypes.includes("cash") && (
                                   <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded" title="Cash pickup available">
                                     💵 Cash
+                                  </span>
+                                )}
+                                {providerSignals[quote.providerId] && (
+                                  <span className="inline-block bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded" title={providerSignals[quote.providerId].reason}>
+                                    ★ {providerSignals[quote.providerId].signal}
                                   </span>
                                 )}
                               </div>

@@ -248,3 +248,34 @@ export function getLatestLiveQuotes(
     });
   });
 }
+export function getProviderClickStats(): Promise<
+  Record<string, { clicks: number; lastClickedAt: string | null }>
+> {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      SELECT
+        providerId,
+        COUNT(*) as clicks,
+        MAX(createdAt) as lastClickedAt
+      FROM provider_clicks
+      GROUP BY providerId
+    `;
+
+    db.all(sql, (err, rows: any[]) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      const stats: Record<string, { clicks: number; lastClickedAt: string | null }> = {};
+      (rows || []).forEach((row) => {
+        stats[row.providerId] = {
+          clicks: row.clicks,
+          lastClickedAt: row.lastClickedAt,
+        };
+      });
+
+      resolve(stats);
+    });
+  });
+}
