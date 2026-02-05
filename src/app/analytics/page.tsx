@@ -5,8 +5,21 @@ import {
   getTopTransferMethods,
 } from "@/lib/db";
 import { corridors } from "@/lib/corridors";
+import { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+// Prevent search engine indexing of analytics dashboard
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
+};
 
 export default async function AnalyticsPage() {
   // Fetch all analytics data in parallel

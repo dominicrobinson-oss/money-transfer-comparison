@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import PWAInit from "@/components/PWAInit";
+import InstallBanner from "@/components/InstallBanner";
 
 export const metadata: Metadata = {
   title: "Money Transfer Comparison - Compare GBP Rates",
@@ -74,6 +75,7 @@ export default function RootLayout({
       <body>
         {children}
         <PWAInit />
+        <InstallBanner />
       </body>
     </html>
   );

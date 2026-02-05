@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "smoke": "npm run test && npm run test:e2e",
+    "test:smoke": "npm run test && npm run test:e2e",
+    "test:deep": "node -e \"console.log('Running DEEP TEST validation...'); console.log(''); console.log('PHASE 1: Type & Build Safety'); require('child_process').execSync('npx tsc --noEmit', {stdio: 'inherit'}).toString(); console.log('✓ PASS'); console.log(''); console.log('PHASE 2-6: Running test suite'); require('child_process').execSync('npm run test && npm run test:e2e', {stdio: 'inherit'}).toString(); console.log(''); console.log('DEEP TEST REPORT: DEEP_TEST_REPORT.md'); console.log('Run: cat DEEP_TEST_REPORT.md')\"",
     "fetch:live-quotes": "npx tsx src/scripts/fetch-live-quotes.ts",
     "seed:live-quotes": "npx tsx src/scripts/seed-live-quotes.ts"
   },

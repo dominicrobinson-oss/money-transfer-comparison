@@ -1,0 +1,33 @@
+# Robots configuration for Money Transfer Comparison
+# https://www.robotstxt.org/
+
+# Allow all robots by default
+User-agent: *
+Allow: /
+
+# Disallow analytics dashboard from indexing
+# This is an internal admin page and should not be indexed by search engines
+Disallow: /analytics
+
+# Disallow API routes from being crawled
+Disallow: /api/
+
+# Disallow internal dev/test routes
+Disallow: /_next/
+
+# Crawl delay settings (optional - allows search engines to throttle requests)
+# Crawl-delay: 1
+
+# Specific search engine rules
+User-agent: Googlebot
+Allow: /
+Disallow: /analytics
+Disallow: /api/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /analytics
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://your-domain.com/sitemap.xml

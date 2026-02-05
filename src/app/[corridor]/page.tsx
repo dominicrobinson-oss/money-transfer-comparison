@@ -14,10 +14,12 @@ export default function DynamicCorridorPage() {
   const corridor = getCorridorById(corridorId);
   const supportingProviders = corridor ? getProvidersByCurrency(corridor.toCurrency) : [];
 
-  // Redirect to home if corridor doesn't exist
+  // Redirect to home if corridor doesn't exist or if it's an active corridor
   useEffect(() => {
     if (!corridor) {
       router.push("/");
+    } else if (corridor.status === "active") {
+      router.push(`/${corridor.id}`);
     }
   }, [corridor, router]);
 
@@ -25,11 +27,7 @@ export default function DynamicCorridorPage() {
     return null;
   }
 
-  // If it's an active corridor, redirect to the specific implementation
   if (corridor.status === "active") {
-    useEffect(() => {
-      router.push(`/${corridor.id}`);
-    }, []);
     return null;
   }
 
@@ -79,7 +77,7 @@ export default function DynamicCorridorPage() {
 
           <div className="max-w-2xl mx-auto space-y-4 text-gray-600 mb-8">
             <p className="text-lg">
-              We're working on adding comprehensive provider comparison for the{" "}
+              We&apos;re working on adding comprehensive provider comparison for the{" "}
               <span className="font-semibold text-gray-900">
                 {corridor.fromCurrency} to {corridor.toCurrency}
               </span>{" "}

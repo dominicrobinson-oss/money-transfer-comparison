@@ -211,7 +211,7 @@ export default function Home() {
                 Transparent Fees
               </h3>
               <p className="text-gray-700">
-                See the exact fee each provider charges. No hidden costs, no surprises. Calculate exactly how much you'll receive.
+                See the exact fee each provider charges. No hidden costs, no surprises. Calculate exactly how much you&apos;ll receive.
               </p>
             </div>
 
@@ -293,7 +293,7 @@ export default function Home() {
                 Send Money
               </h3>
               <p className="text-gray-700 mt-2">
-                Click the provider you prefer. We'll redirect you to their website to complete the transfer.
+                Click the provider you prefer. We&apos;ll redirect you to their website to complete the transfer.
               </p>
             </div>
           </div>
@@ -328,16 +328,16 @@ export default function Home() {
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-8">
               <h3 className="text-lg font-semibold text-amber-900 mb-3">Transparency & Disclosure</h3>
               <p className="text-amber-800 mb-4">
-                This site is designed to help you compare money transfer rates between providers. Here's how we operate:
+                This site is designed to help you compare money transfer rates between providers. Here&apos;s how we operate:
               </p>
               <ul className="space-y-3 text-amber-800">
                 <li className="flex gap-2">
                   <span className="font-semibold">•</span>
-                  <span><strong>No Payment Processing:</strong> We do not process payments or hold your money. We only compare rates and redirect you to providers' websites.</span>
+                  <span><strong>No Payment Processing:</strong> We do not process payments or hold your money. We only compare rates and redirect you to providers&apos; websites.</span>
                 </li>
                 <li className="flex gap-2">
                   <span className="font-semibold">•</span>
-                  <span><strong>Referral Fees:</strong> We may earn referral fees from providers when you click through and complete a transfer. This does not increase the cost to you—you pay the same rate whether you use our site or visit the provider directly.</span>
+                  <span><strong>Referral Fees:</strong> We may earn referral fees from providers when you click through and complete a transfer. This does not increase the cost to you&mdash;you pay the same rate whether you use our site or visit the provider directly.</span>
                 </li>
                 <li className="flex gap-2">
                   <span className="font-semibold">•</span>

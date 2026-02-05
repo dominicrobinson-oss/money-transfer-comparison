@@ -41,14 +41,14 @@ export async function fetchWiseQuote(): Promise<Quote> {
   let timeoutHandle: NodeJS.Timeout | null = null;
 
   try {
-    const timeoutPromise = new Promise<never>((_, reject) => {
+    const timeoutPromise: Promise<Quote> = new Promise((_, reject) => {
       timeoutHandle = setTimeout(
         () => reject(new Error("Wise quote fetch exceeded 5 second hard timeout")),
         HARD_TIMEOUT_MS
       );
     });
 
-    const fetchPromise = (async () => {
+    const fetchPromise: Promise<Quote> = (async () => {
       browser = await chromium.launch({ headless: true });
       page = await browser.newPage();
 
@@ -82,14 +82,14 @@ export async function fetchWiseQuote(): Promise<Quote> {
 
       return {
         providerId: "wise",
-        fromCurrency: "GBP",
-        toCurrency: "NGN",
+        fromCurrency: "GBP" as const,
+        toCurrency: "NGN" as const,
         sendAmount: 100,
         rate,
         fee,
         receiveAmount,
         fetchedAt: new Date().toISOString(),
-        source: "live",
+        source: "live" as const,
       };
     })();
 
@@ -100,7 +100,11 @@ export async function fetchWiseQuote(): Promise<Quote> {
     );
   } finally {
     if (timeoutHandle) clearTimeout(timeoutHandle);
-    if (page) await page.close();
-    if (browser) await browser.close();
+    try {
+      if (page) await (page as any).close();
+    } catch {}
+    try {
+      if (browser) await (browser as any).close();
+    } catch {}
   }
 }
