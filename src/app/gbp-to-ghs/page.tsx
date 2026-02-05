@@ -2,12 +2,14 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Quote } from "@/types/core";
+import { Quote, TransferMethod, METHOD_PROFILES } from "@/types/core";
 import { corridors, getCorridorByPair } from "@/lib/corridors";
 import { rankQuotes, RankedQuote } from "@/lib/quotes/rankQuotes";
+import { applyMethodAdjustment } from "@/lib/quotes/applyMethodAdjustment";
 import { formatNumber, formatNumberLocale } from "@/lib/utils/format";
 import { providers } from "@/lib/providers";
 import { trackCorridorView, trackAmountChange, trackCurrencySelect } from "@/lib/telemetry";
+import { getApplicablePromos } from "@/lib/promotions";
 import Link from "next/link";
 
 const LIVE_FETCH_TIMEOUT_MS = 2000;
@@ -80,6 +82,7 @@ export default function GbpToGhsPage() {
   const router = useRouter();
   const [sendAmount, setSendAmount] = useState<string>(String(DEFAULT_SEND_AMOUNT));
   const [selectedCurrency, setSelectedCurrency] = useState<string>(TO_CURRENCY);
+  const [transferMethod, setTransferMethod] = useState<TransferMethod>("bank");
   const [quotes, setQuotes] = useState<Quote[]>(
     Object.values(MOCK_QUOTES) as Quote[]
   );
@@ -89,6 +92,7 @@ export default function GbpToGhsPage() {
   const [hasLiveQuotes, setHasLiveQuotes] = useState(false);
   const [formattedLastUpdated, setFormattedLastUpdated] = useState<string>("—");
   const [rateFreshnessLabel, setRateFreshnessLabel] = useState<string>("—");
+  const [expandedPromo, setExpandedPromo] = useState<string | null>(null);
   
   const amountChangeTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -285,6 +289,25 @@ export default function GbpToGhsPage() {
           </select>
         </div>
 
+        {/* Transfer Method Selector */}
+        <div className="mb-6 bg-white rounded-lg shadow p-4">
+          <label htmlFor="method-select" className="block text-sm font-medium text-gray-700 mb-2">
+            Payment method
+          </label>
+          <select
+            id="method-select"
+            value={transferMethod}
+            onChange={(e) => setTransferMethod(e.target.value as TransferMethod)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+          >
+            {Object.entries(METHOD_PROFILES).map(([method, profile]) => (
+              <option key={method} value={method}>
+                {profile.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <p className="text-gray-600 mb-6">Sending £{formatNumber(parseFloat(sendAmount) || 0, 2)} to Ghana</p>
 
         {isActive ? (
@@ -295,6 +318,8 @@ export default function GbpToGhsPage() {
                 Fetching live rates…
               </div>
             )}
+
+            <p className="text-xs text-gray-500 mb-4">All providers are compared using the same £{formatNumber(parseFloat(sendAmount))} amount via {METHOD_PROFILES[transferMethod].name.toLowerCase()}—rankings show relative value, not exact checkout pricing.</p>
 
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <div className="overflow-x-auto">
@@ -320,6 +345,17 @@ export default function GbpToGhsPage() {
                     {rankQuotes(quotes).map((quote: RankedQuote, index: number) => {
                       const provider = providers.find((p) => p.id === quote.providerId);
                       const isLoading = loadingProviders.has(quote.providerId);
+                      
+                      // Skip if provider is not registered or doesn't support selected method
+                      if (!provider) {
+                        return null;
+                      }
+                      if (!provider.supportedMethods.includes(transferMethod)) {
+                        return null;
+                      }
+                      
+                      // Apply method adjustments to quote
+                      const adjustedQuote = applyMethodAdjustment(quote, transferMethod);
                       // Use semantic key when data is complete, fallback to index
                       const itemKey = quote.providerId && quote.fromCurrency && quote.toCurrency
                         ? `${quote.providerId}-${quote.fromCurrency}-${quote.toCurrency}`
@@ -338,6 +374,31 @@ export default function GbpToGhsPage() {
                               <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded">
                                 Estimated
                               </span>
+                              {(() => {
+                                const promos = getApplicablePromos(
+                                  quote.providerId,
+                                  `${FROM_CURRENCY}-${TO_CURRENCY}`,
+                                  transferMethod
+                                );
+                                if (promos.length > 0) {
+                                  return (
+                                    <button
+                                      onClick={() =>
+                                        setExpandedPromo(
+                                          expandedPromo === quote.providerId
+                                            ? null
+                                            : quote.providerId
+                                        )
+                                      }
+                                      className="inline-block bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded font-medium hover:bg-purple-200 transition cursor-pointer"
+                                      title={promos[0].disclaimerText}
+                                    >
+                                      {promos[0].badgeLabel || "Promo"}
+                                    </button>
+                                  );
+                                }
+                                return null;
+                              })()}
                               {quote.bestRateToday && (
                                 <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
                                   Best Rate
@@ -347,15 +408,39 @@ export default function GbpToGhsPage() {
                                 <span className="inline-block w-1 h-1 bg-gray-400 rounded-full animate-pulse"></span>
                               )}
                             </div>
+                            {expandedPromo === quote.providerId && (() => {
+                              const promos = getApplicablePromos(
+                                quote.providerId,
+                                `${FROM_CURRENCY}-${TO_CURRENCY}`,
+                                transferMethod
+                              );
+                              return (
+                                <div className="mt-2 text-xs bg-purple-50 border border-purple-200 rounded p-2">
+                                  {promos.map((promo) => (
+                                    <div key={promo.id}>
+                                      <div className="font-medium text-purple-900">
+                                        {promo.badgeLabel || "Promotion"}
+                                      </div>
+                                      <div className="text-purple-800 mt-1">
+                                        {promo.disclaimerText}
+                                      </div>
+                                      <div className="text-purple-700 text-xs mt-1">
+                                        Eligibility: {promo.eligibility}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                           </td>
                           <td className="px-4 py-4 text-right font-semibold text-gray-900">
-                            ₵{formatNumberLocale(quote.receiveAmount, 2)}
+                            GHS {formatNumberLocale(adjustedQuote.receiveAmount, 2)}
                           </td>
                           <td className="px-4 py-4 text-right text-gray-700">
-                            {formatNumber(quote.rate, 2)}
+                            {formatNumber(adjustedQuote.rate, 2)}
                           </td>
                           <td className="px-4 py-4 text-right text-gray-700">
-                            £{formatNumber(quote.fee, 2)}
+                            £{formatNumber(adjustedQuote.fee, 2)}
                           </td>
                           <td className="px-4 py-4 text-right">
                             <Link

@@ -7,6 +7,7 @@ export const providers: Provider[] = [
     websiteUrl: "https://wise.com",
     redirectStrategy: "homepage",
     supportsNGN: true,
+    supportedMethods: ["bank", "card"],
   },
   {
     id: "remitly",
@@ -14,6 +15,7 @@ export const providers: Provider[] = [
     websiteUrl: "https://www.remitly.com",
     redirectStrategy: "homepage",
     supportsNGN: true,
+    supportedMethods: ["bank", "card", "wallet"],
   },
   {
     id: "sendwave",
@@ -21,6 +23,7 @@ export const providers: Provider[] = [
     websiteUrl: "https://www.sendwave.com",
     redirectStrategy: "homepage",
     supportsNGN: true,
+    supportedMethods: ["bank", "card", "wallet"],
   },
 ];
 
