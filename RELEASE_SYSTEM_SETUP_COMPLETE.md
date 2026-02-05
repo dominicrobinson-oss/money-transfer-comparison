@@ -6,6 +6,20 @@
 
 ---
 
+## RELEASE HISTORY
+
+### Version 1.2.3 ✅ RELEASED
+- **Release Date**: February 5, 2026
+- **Branch**: release/v1.2.3
+- **Tag**: v1.2.3
+- **Status**: Merged to master
+- **Changes**: Added InstallBanner component, deployment documentation, robots.txt configuration
+- **Tests Passed**: 8 unit tests + 7 E2E tests ✓
+- **Build Status**: Production build ✓
+- **TypeScript**: No errors ✓
+
+---
+
 ## WHAT WAS CREATED
 
 ### 📄 New Documentation Files (5 files, 56 KB total)
