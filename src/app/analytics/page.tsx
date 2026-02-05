@@ -4,6 +4,7 @@ import {
   getCorridorClickThroughRates,
   getTopTransferMethods,
 } from "@/lib/db";
+import { corridors } from "@/lib/corridors";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,15 @@ export default async function AnalyticsPage() {
     getCorridorClickThroughRates(),
     getTopTransferMethods(),
   ]);
+
+  // Enrich corridor CTR data with status from corridors registry
+  const enrichedCorridorCTRs = corridorCTRs.map((ctr) => {
+    const corridor = corridors.find((c) => c.id === ctr.corridor);
+    return {
+      ...ctr,
+      status: corridor?.status || "unknown",
+    };
+  });
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
@@ -104,15 +114,21 @@ export default async function AnalyticsPage() {
           {/* Click-Through Rate per Corridor */}
           <section className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Click-Through Rate by Corridor
+              Activation Readiness by Corridor
             </h2>
-            {corridorCTRs.length > 0 ? (
+            <p className="text-sm text-gray-600 mb-4">
+              Corridors with high views but low CTR are highlighted as activation candidates
+            </p>
+            {enrichedCorridorCTRs.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Corridor
+                      </th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
                       </th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Views
@@ -123,13 +139,40 @@ export default async function AnalyticsPage() {
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         CTR
                       </th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Readiness
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {corridorCTRs.map((row, index) => (
-                      <tr key={row.corridor} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                    {enrichedCorridorCTRs.map((row, index) => (
+                      <tr 
+                        key={row.corridor} 
+                        className={
+                          row.isActivationCandidate 
+                            ? "bg-amber-50 border-l-4 border-amber-400" 
+                            : index % 2 === 0 
+                            ? "bg-white" 
+                            : "bg-gray-50"
+                        }
+                      >
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {row.corridor}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          {row.status === "active" ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Active
+                            </span>
+                          ) : row.status === "informational" ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              Informational
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              Unknown
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
                           {row.views.toLocaleString()}
@@ -139,6 +182,19 @@ export default async function AnalyticsPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
                           {(row.ctr * 100).toFixed(2)}%
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          {row.isActivationCandidate ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                              ⚠️ Activation Candidate
+                            </span>
+                          ) : row.status === "active" ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              ✓ Activated
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-500">—</span>
+                          )}
                         </td>
                       </tr>
                     ))}

@@ -330,11 +330,19 @@ export function getTopProvidersByClicks(): Promise<Array<{ providerId: string; c
 }
 
 /**
- * Analytics: Get click-through rate per corridor
+ * Analytics: Get click-through rate per corridor with activation readiness
  * CTR = (provider clicks) / (corridor views)
+ * Includes corridor status and activation candidate flag
  */
 export function getCorridorClickThroughRates(): Promise<
-  Array<{ corridor: string; views: number; clicks: number; ctr: number }>
+  Array<{ 
+    corridor: string; 
+    views: number; 
+    clicks: number; 
+    ctr: number;
+    status: string;
+    isActivationCandidate: boolean;
+  }>
 > {
   return new Promise((resolve, reject) => {
     const sql = `
@@ -358,7 +366,7 @@ export function getCorridorClickThroughRates(): Promise<
         FROM provider_clicks
         GROUP BY corridor
       ) c ON v.corridor = c.corridor
-      ORDER BY ctr DESC
+      ORDER BY views DESC
     `;
 
     db.all(sql, [], (err, rows: any[]) => {
@@ -372,6 +380,8 @@ export function getCorridorClickThroughRates(): Promise<
           views: r.views,
           clicks: r.clicks,
           ctr: r.ctr,
+          status: '', // Will be filled in by the page component
+          isActivationCandidate: r.views >= 10 && (r.clicks === 0 || r.ctr < 0.05),
         }))
       );
     });
