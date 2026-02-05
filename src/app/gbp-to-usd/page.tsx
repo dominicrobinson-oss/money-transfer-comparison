@@ -362,6 +362,11 @@ export default function GbpToUsdPage() {
                               <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded">
                                 Estimated
                               </span>
+                              <span className="inline-flex items-center" title="Rates differ because providers use different exchange rates, fee structures, and payment methods. These are estimates—final rates shown at checkout may vary.">
+                                <svg className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                </svg>
+                              </span>
                               {(() => {
                                 const promos = getApplicablePromos(
                                   quote.providerId,
