@@ -1,6 +1,11 @@
-import Link from "next/link";
+"use client";
 
-const corridors = [
+import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { corridors } from "@/lib/corridors";
+
+const corridorLinks = [
   {
     from: "GBP",
     to: "NGN",
@@ -45,7 +50,36 @@ const corridors = [
   },
 ];
 
+// Currency metadata
+const currencyInfo: Record<string, { name: string; flag: string }> = {
+  NGN: { name: "Nigerian Naira", flag: "🇳🇬" },
+  GHS: { name: "Ghanaian Cedi", flag: "🇬🇭" },
+  ZAR: { name: "South African Rand", flag: "🇿🇦" },
+  USD: { name: "US Dollar", flag: "🇺🇸" },
+  EUR: { name: "Euro", flag: "🇪🇺" },
+  CAD: { name: "Canadian Dollar", flag: "🇨🇦" },
+};
+
 export default function Home() {
+  const router = useRouter();
+  const [selectedCurrency, setSelectedCurrency] = useState<string>("");
+  
+  const activeCurrencies = corridors
+    .filter((c) => c.status === "active")
+    .map((c) => c.toCurrency)
+    .filter((value, index, self) => self.indexOf(value) === index); // unique
+
+  const handleCurrencyChange = (currency: string) => {
+    setSelectedCurrency(currency);
+    if (currency) {
+      const corridor = corridors.find(
+        (c) => c.toCurrency === currency && c.status === "active"
+      );
+      if (corridor) {
+        router.push(`/${corridor.id}`);
+      }
+    }
+  };
   return (
     <main className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -57,20 +91,49 @@ export default function Home() {
           <p className="text-lg md:text-xl text-gray-600 mb-6">
             Compare real-time exchange rates from trusted money transfer providers. Send money internationally with the best rates and lowest fees.
           </p>
-          <p className="text-gray-700">
-            Choose a corridor below to compare rates from Wise, Remitly, SendWave, and more.
-          </p>
+
+          {/* Currency Selector */}
+          <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+            <label
+              htmlFor="currency-select"
+              className="block text-sm font-medium text-gray-700 mb-3"
+            >
+              I want to send GBP to:
+            </label>
+            <select
+              id="currency-select"
+              value={selectedCurrency}
+              onChange={(e) => handleCurrencyChange(e.target.value)}
+              className="block w-full md:w-auto px-4 py-3 text-base border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-md bg-white"
+            >
+              <option value="">Select currency...</option>
+              {activeCurrencies.map((currency) => {
+                const info = currencyInfo[currency];
+                return (
+                  <option key={currency} value={currency}>
+                    {info?.flag} {currency} - {info?.name}
+                  </option>
+                );
+              })}
+            </select>
+            <p className="mt-3 text-sm text-gray-500">
+              Select a currency to compare rates instantly
+            </p>
+          </div>
         </div>
       </section>
 
       {/* Corridors Grid */}
       <section className="max-w-4xl mx-auto px-4 py-12 md:py-16">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
           Available Corridors
         </h2>
+        <p className="text-gray-600 mb-8">
+          Or browse all supported currency pairs below
+        </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {corridors.map((corridor) => (
+          {corridorLinks.map((corridor) => (
             <Link
               key={corridor.href}
               href={corridor.href}
