@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { corridors, getCorridorById } from "@/lib/corridors";
+import { getProvidersByCurrency } from "@/lib/providers";
 import { useEffect } from "react";
 import Link from "next/link";
 
@@ -11,6 +12,7 @@ export default function DynamicCorridorPage() {
   const corridorId = params.corridor as string;
   
   const corridor = getCorridorById(corridorId);
+  const supportingProviders = corridor ? getProvidersByCurrency(corridor.toCurrency) : [];
 
   // Redirect to home if corridor doesn't exist
   useEffect(() => {
@@ -117,6 +119,37 @@ export default function DynamicCorridorPage() {
               </li>
             </ul>
           </div>
+
+          {/* Providers that support this currency */}
+          {supportingProviders.length > 0 && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
+                <span className="text-green-600 mr-2">✓</span>
+                Providers that support {corridor.toCurrency}
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                These providers already offer transfers to {corridor.toCurrency}. Full comparison coming soon.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {supportingProviders.map((provider) => (
+                  <div
+                    key={provider.id}
+                    className="bg-white rounded-md p-3 border border-green-200"
+                  >
+                    <div className="font-medium text-gray-900 mb-1">
+                      {provider.name}
+                    </div>
+                    <div className="text-xs text-gray-600 space-y-1">
+                      <div>⚡ {provider.typicalSpeed}</div>
+                      <div>
+                        📤 {provider.payoutTypes.map(p => p.replace('-', ' ')).join(', ')}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Call to action */}
           <div className="space-y-4">

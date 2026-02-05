@@ -437,6 +437,23 @@ export default function GbpToGhsPage() {
                                 </div>
                               );
                             })()}
+                            {provider && (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded" title="Typical transfer speed">
+                                  ⚡ {provider.typicalSpeed}
+                                </span>
+                                {provider.payoutTypes.includes("mobile-wallet") && (
+                                  <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded" title="Mobile wallet payout available">
+                                    📱 Wallet
+                                  </span>
+                                )}
+                                {provider.payoutTypes.includes("cash") && (
+                                  <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded" title="Cash pickup available">
+                                    💵 Cash
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </td>
                           <td className="px-4 py-4 text-right font-semibold text-gray-900">
                             GHS {formatNumberLocale(adjustedQuote.receiveAmount, 2)}

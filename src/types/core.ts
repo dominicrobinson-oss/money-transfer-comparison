@@ -36,14 +36,19 @@ export const METHOD_PROFILES: Record<TransferMethod, MethodProfile> = {
   },
 };
 
+export type PayoutType = "bank" | "cash" | "mobile-wallet" | "home-delivery";
+
 export interface Provider {
   id: string;
   name: string;
   websiteUrl: string;
   affiliateUrl?: string;
   redirectStrategy: "homepage" | "corridor" | "affiliate-only";
-  supportsNGN: boolean;
+  supportsNGN: boolean; // deprecated, use supportedCurrencies
   supportedMethods: TransferMethod[];
+  supportedCurrencies: string[]; // ISO 4217 codes
+  payoutTypes: PayoutType[];
+  typicalSpeed: string; // e.g., "Minutes", "1-2 hours", "1-3 days"
 }
 
 export interface Quote {
