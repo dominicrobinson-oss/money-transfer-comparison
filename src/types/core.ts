@@ -4,13 +4,15 @@ export interface Provider {
   id: string;
   name: string;
   websiteUrl: string;
+  affiliateUrl?: string;
+  redirectStrategy: "homepage" | "corridor" | "affiliate-only";
   supportsNGN: boolean;
 }
 
 export interface Quote {
   providerId: string;
   fromCurrency: "GBP";
-  toCurrency: "NGN";
+  toCurrency: "NGN" | "GHS" | "ZAR" | "USD" | "EUR" | "CAD";
   sendAmount: number;
   rate: number;
   fee: number;
@@ -31,7 +33,7 @@ export interface ProviderRating {
 export interface ProviderClick {
   providerId: string;
   fromCurrency: "GBP";
-  toCurrency: "NGN";
+  toCurrency: "NGN" | "GHS" | "ZAR" | "USD" | "EUR" | "CAD";
   sendAmount: number;
   clickedAt: string; // ISO string
   userAgent: string;

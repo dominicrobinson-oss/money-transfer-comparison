@@ -38,6 +38,17 @@ const initSql = `
     createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(providerId, fromCurrency, toCurrency)
   );
+
+  CREATE TABLE IF NOT EXISTS telemetry_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    eventType TEXT NOT NULL,
+    corridor TEXT,
+    amountBucket TEXT,
+    fromCurrency TEXT,
+    toCurrency TEXT,
+    providerId TEXT,
+    createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
 `;
 
 db.serialize(() => {
@@ -153,8 +164,47 @@ export function saveLiveQuote(quote: Quote): Promise<void> {
   });
 }
 
-/**
- * Get the most recent live quotes for a currency corridor
+/** * Log telemetry event (anonymous, privacy-safe)
+ */
+export interface TelemetryEventRecord {
+  eventType: string;
+  corridor?: string;
+  amountBucket?: string;
+  fromCurrency?: string;
+  toCurrency?: string;
+  providerId?: string;
+}
+
+export function logTelemetryEvent(event: TelemetryEventRecord): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      INSERT INTO telemetry_events (
+        eventType, corridor, amountBucket, fromCurrency, toCurrency, providerId
+      ) VALUES (?, ?, ?, ?, ?, ?)
+    `;
+
+    db.run(
+      sql,
+      [
+        event.eventType,
+        event.corridor || null,
+        event.amountBucket || null,
+        event.fromCurrency || null,
+        event.toCurrency || null,
+        event.providerId || null,
+      ],
+      (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      }
+    );
+  });
+}
+
+/** * Get the most recent live quotes for a currency corridor
  * Returns one quote per provider, sorted by fetchedAt descending
  */
 export function getLatestLiveQuotes(

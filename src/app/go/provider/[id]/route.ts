@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ProviderClick } from "@/types/core";
-import { logProviderClick } from "@/lib/db";
+import { logProviderClick, logTelemetryEvent } from "@/lib/db";
 import { getProviderById } from "@/lib/providers";
 
 export async function GET(
@@ -63,14 +63,32 @@ export async function GET(
       referrer: clickEvent.referrer,
       createdAt: clickEvent.clickedAt,
     });
+    
+    // Log telemetry event (anonymous, privacy-safe)
+    logTelemetryEvent({
+      eventType: "provider_clicked",
+      providerId: id,
+      corridor: `${fromCurrency}-${toCurrency}`,
+      fromCurrency,
+      toCurrency,
+    }).catch((error) => {
+      console.error("Failed to log telemetry:", error);
+    });
   } catch (error) {
     console.error("Failed to log provider click:", error);
   }
 
   console.log("Provider Click Event:", clickRecord);
 
-  // Redirect to provider website
-  const redirectUrl = provider.affiliateUrl || provider.websiteUrl;
+  // Redirect based on redirectStrategy
+  let redirectUrl = provider.websiteUrl;
+  if (provider.redirectStrategy === "affiliate-only" && provider.affiliateUrl) {
+    try {
+      redirectUrl = new URL(provider.affiliateUrl).toString();
+    } catch {
+      redirectUrl = provider.websiteUrl;
+    }
+  }
   const url = new URL(redirectUrl);
   url.searchParams.set("utm_source", "money-transfer-comparison");
   url.searchParams.set("utm_medium", "referral");

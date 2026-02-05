@@ -2,6 +2,7 @@
  * Seed Live Quotes Script
  *
  * Inserts test live quotes into the database for development/testing
+ * Seeds quotes for multiple corridors (GBP → NGN, GBP → GHS)
  *
  * Usage:
  *   npx tsx src/scripts/seed-live-quotes.ts
@@ -22,9 +23,10 @@ async function seedLiveQuotes() {
     await ensureDbInitialized();
 
     const now = new Date().toISOString();
+    const quotes: Quote[] = [];
 
-    // Wise quote - realistic values
-    const wiseQuote: Quote = {
+    // GBP → NGN corridor
+    const wiseNgnQuote: Quote = {
       providerId: "wise",
       fromCurrency: "GBP",
       toCurrency: "NGN",
@@ -35,9 +37,9 @@ async function seedLiveQuotes() {
       fetchedAt: now,
       source: "live",
     };
+    quotes.push(wiseNgnQuote);
 
-    // Remitly quote - realistic values
-    const remitlyQuote: Quote = {
+    const remitlyNgnQuote: Quote = {
       providerId: "remitly",
       fromCurrency: "GBP",
       toCurrency: "NGN",
@@ -48,22 +50,53 @@ async function seedLiveQuotes() {
       fetchedAt: now,
       source: "live",
     };
+    quotes.push(remitlyNgnQuote);
 
-    console.log("\nInserting Wise quote...");
-    await saveLiveQuote(wiseQuote);
-    console.log(`✓ Wise: £${wiseQuote.sendAmount} → ₦${wiseQuote.receiveAmount.toFixed(2)}`);
-    console.log(`  Rate: ${wiseQuote.rate}, Fee: £${wiseQuote.fee}`);
+    // GBP → GHS corridor
+    const wiseGhsQuote: Quote = {
+      providerId: "wise",
+      fromCurrency: "GBP",
+      toCurrency: "GHS",
+      sendAmount: SEND_AMOUNT,
+      rate: 9.25,
+      fee: 1.29,
+      receiveAmount: 867.46,
+      fetchedAt: now,
+      source: "live",
+    };
+    quotes.push(wiseGhsQuote);
 
-    console.log("\nInserting Remitly quote...");
-    await saveLiveQuote(remitlyQuote);
-    console.log(
-      `✓ Remitly: £${remitlyQuote.sendAmount} → ₦${remitlyQuote.receiveAmount.toFixed(2)}`
-    );
-    console.log(`  Rate: ${remitlyQuote.rate}, Fee: £${remitlyQuote.fee}`);
+    const remitlyGhsQuote: Quote = {
+      providerId: "remitly",
+      fromCurrency: "GBP",
+      toCurrency: "GHS",
+      sendAmount: SEND_AMOUNT,
+      rate: 9.18,
+      fee: 3.5,
+      receiveAmount: 847.94,
+      fetchedAt: now,
+      source: "live",
+    };
+    quotes.push(remitlyGhsQuote);
+
+    // Insert all quotes
+    console.log("\nInserting quotes...");
+
+    for (const quote of quotes) {
+      const toCurrency = quote.toCurrency === "NGN" ? "₦" : "₵";
+      console.log(
+        `✓ ${quote.providerId.charAt(0).toUpperCase() + quote.providerId.slice(1)}: £${quote.sendAmount} → ${toCurrency}${quote.receiveAmount.toFixed(2)}`
+      );
+      console.log(
+        `  Rate: ${quote.rate}, Fee: £${quote.fee} (${quote.fromCurrency} → ${quote.toCurrency})`
+      );
+      await saveLiveQuote(quote);
+    }
 
     console.log("\n============================================================");
-    console.log(`✓ Successfully seeded ${2} live quotes`);
+    console.log(`✓ Successfully seeded ${quotes.length} live quotes`);
     console.log(`  Timestamp: ${now}`);
+    console.log("  Coverage: GBP→NGN (wise, remitly), GBP→GHS (wise, remitly)");
     console.log("============================================================");
     process.exit(0);
   } catch (error) {

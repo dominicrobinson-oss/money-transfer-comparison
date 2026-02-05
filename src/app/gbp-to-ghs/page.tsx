@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Quote } from "@/types/core";
+import { corridors, getCorridorByPair } from "@/lib/corridors";
 import { rankQuotes, RankedQuote } from "@/lib/quotes/rankQuotes";
 import { formatNumber, formatNumberLocale } from "@/lib/utils/format";
 import { providers } from "@/lib/providers";
+import { trackCorridorView, trackAmountChange, trackCurrencySelect } from "@/lib/telemetry";
 import Link from "next/link";
 
 const LIVE_FETCH_TIMEOUT_MS = 2000;
 const DEFAULT_SEND_AMOUNT = 100;
-const FROM_CURRENCY = "GBP";
-const TO_CURRENCY = "GHS";
+const FROM_CURRENCY = "GBP" as const;
+const TO_CURRENCY = "GHS" as const;
 // Static timestamp for mock quotes to ensure deterministic server rendering
 const MOCK_TIMESTAMP = "2025-02-04T12:00:00Z";
 
@@ -74,7 +77,9 @@ const MOCK_QUOTES = {
 };
 
 export default function GbpToGhsPage() {
-  const [sendAmount, setSendAmount] = useState<number>(DEFAULT_SEND_AMOUNT);
+  const router = useRouter();
+  const [sendAmount, setSendAmount] = useState<string>(String(DEFAULT_SEND_AMOUNT));
+  const [selectedCurrency, setSelectedCurrency] = useState<string>(TO_CURRENCY);
   const [quotes, setQuotes] = useState<Quote[]>(
     Object.values(MOCK_QUOTES) as Quote[]
   );
@@ -83,13 +88,34 @@ export default function GbpToGhsPage() {
   );
   const [hasLiveQuotes, setHasLiveQuotes] = useState(false);
   const [formattedLastUpdated, setFormattedLastUpdated] = useState<string>("—");
+  const [rateFreshnessLabel, setRateFreshnessLabel] = useState<string>("—");
+  
+  const amountChangeTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const corridorOptions = corridors.filter(
+    (corridor) => corridor.fromCurrency === FROM_CURRENCY
+  );
+
+  const corridor = getCorridorByPair(FROM_CURRENCY, TO_CURRENCY);
+  const isActive = corridor?.status === "active";
+
+  const handleCurrencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const currency = e.target.value;
+    setSelectedCurrency(currency);
+    const selected = corridorOptions.find((option) => option.toCurrency === currency);
+    if (selected?.status === "active") {
+      trackCurrencySelect(FROM_CURRENCY, selected.toCurrency);
+      router.push(`/gbp-to-${selected.toCurrency.toLowerCase()}`);
+    }
+  };
 
   /**
    * Recalculate quotes based on new send amount
    * Formula: receiveAmount = (sendAmount - fee) * rate
    */
-  const getRecalculatedQuotes = (amount: number): Quote[] => {
-    if (amount <= 0) return quotes;
+  const getRecalculatedQuotes = (amountStr: string): Quote[] => {
+    const amount = parseFloat(amountStr);
+    if (!amount || amount <= 0) return quotes;
     
     return quotes.map((quote) => ({
       ...quote,
@@ -99,11 +125,34 @@ export default function GbpToGhsPage() {
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseFloat(e.target.value) || DEFAULT_SEND_AMOUNT;
+    const value = e.target.value;
     setSendAmount(value);
-    // Recalculate quotes instantly based on new amount
-    setQuotes(getRecalculatedQuotes(value));
+    // Recalculate quotes instantly based on new amount (only if valid)
+    if (value && parseFloat(value) > 0) {
+      setQuotes(getRecalculatedQuotes(value));
+      
+      // Debounced telemetry tracking
+      if (amountChangeTimeout.current) {
+        clearTimeout(amountChangeTimeout.current);
+      }
+      amountChangeTimeout.current = setTimeout(() => {
+        trackAmountChange(parseFloat(value));
+      }, 1000);
+    }
   };
+
+  const handleAmountBlur = () => {
+    // Default to DEFAULT_SEND_AMOUNT if empty or invalid
+    if (!sendAmount || parseFloat(sendAmount) <= 0) {
+      setSendAmount(String(DEFAULT_SEND_AMOUNT));
+      setQuotes(getRecalculatedQuotes(String(DEFAULT_SEND_AMOUNT)));
+    }
+  };
+
+  // Track corridor view on mount
+  useEffect(() => {
+    trackCorridorView(FROM_CURRENCY, TO_CURRENCY);
+  }, []);
 
   useEffect(() => {
     // Fetch live quotes from API in background without blocking
@@ -149,15 +198,32 @@ export default function GbpToGhsPage() {
 
     if (lastUpdated) {
       try {
-        const formatted = new Date(lastUpdated).toLocaleString("en-GB", {
+        const parsed = new Date(lastUpdated);
+        const formatted = parsed.toLocaleString("en-GB", {
           timeZone: "Europe/London",
         });
         setFormattedLastUpdated(formatted);
+
+        if (!Number.isNaN(parsed.getTime())) {
+          const diffMinutes = Math.max(0, Math.floor((Date.now() - parsed.getTime()) / 60000));
+          if (diffMinutes < 60) {
+            const minuteLabel = diffMinutes === 1 ? "minute" : "minutes";
+            setRateFreshnessLabel(`${diffMinutes} ${minuteLabel} ago`);
+          } else {
+            const hours = Math.floor(diffMinutes / 60);
+            const hourLabel = hours === 1 ? "hour" : "hours";
+            setRateFreshnessLabel(`${hours} ${hourLabel} ago`);
+          }
+        } else {
+          setRateFreshnessLabel("—");
+        }
       } catch {
         setFormattedLastUpdated("—");
+        setRateFreshnessLabel("—");
       }
     } else {
       setFormattedLastUpdated("—");
+      setRateFreshnessLabel("—");
     }
   }, [quotes]);
 
@@ -177,102 +243,153 @@ export default function GbpToGhsPage() {
             <span className="text-lg font-semibold text-gray-700">£</span>
             <input
               type="number"
-              min="0"
-              step="0.01"
+              min="1"
+              step="1"
               value={sendAmount}
               onChange={handleAmountChange}
+              onBlur={handleAmountBlur}
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
               placeholder="100"
             />
           </div>
+          <p className="text-xs text-gray-500 mt-2">Amount in British Pounds (GBP)</p>
         </div>
 
-        <p className="text-gray-600 mb-6">Sending £{formatNumber(sendAmount, 2)} to Ghana</p>
+        {/* Currency Selector */}
+        <div className="mb-6 bg-white rounded-lg shadow p-4">
+          <label htmlFor="currency-select" className="block text-sm font-medium text-gray-700 mb-2">
+            Send to
+          </label>
+          <select
+            id="currency-select"
+            value={selectedCurrency}
+            onChange={handleCurrencyChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+          >
+            {corridorOptions.map((option) => {
+              const suffix = option.status === "active"
+                ? ""
+                : option.status === "coming-soon"
+                  ? " (Coming soon)"
+                  : " (Informational)";
+              return (
+                <option
+                  key={option.id}
+                  value={option.toCurrency}
+                  disabled={option.status !== "active"}
+                >
+                  {option.label}{suffix}
+                </option>
+              );
+            })}
+          </select>
+        </div>
 
-        {loadingProviders.size > 0 && (
-          <div className="mb-4 flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded">
-            <span className="inline-block w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse"></span>
-            Fetching live rates…
+        <p className="text-gray-600 mb-6">Sending £{formatNumber(parseFloat(sendAmount) || 0, 2)} to Ghana</p>
+
+        {isActive ? (
+          <>
+            {loadingProviders.size > 0 && (
+              <div className="mb-4 flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded">
+                <span className="inline-block w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse"></span>
+                Fetching live rates…
+              </div>
+            )}
+
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-100 border-b">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                        Provider
+                      </th>
+                      <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
+                        You Receive
+                      </th>
+                      <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
+                        Rate
+                      </th>
+                      <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
+                        Fee
+                      </th>
+                      <th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {rankQuotes(quotes).map((quote: RankedQuote, index: number) => {
+                      const provider = providers.find((p) => p.id === quote.providerId);
+                      const isLoading = loadingProviders.has(quote.providerId);
+                      // Use semantic key when data is complete, fallback to index
+                      const itemKey = quote.providerId && quote.fromCurrency && quote.toCurrency
+                        ? `${quote.providerId}-${quote.fromCurrency}-${quote.toCurrency}`
+                        : index;
+
+                      return (
+                        <tr
+                          key={itemKey}
+                          className={`hover:bg-gray-50 transition ${
+                            isLoading ? "opacity-75" : ""
+                          }`}
+                        >
+                          <td className="px-4 py-4">
+                            <div className="font-medium text-gray-900 flex items-center gap-2">
+                              {provider?.name || quote.providerId}
+                              <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded">
+                                Estimated
+                              </span>
+                              {quote.bestRateToday && (
+                                <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+                                  Best Rate
+                                </span>
+                              )}
+                              {isLoading && (
+                                <span className="inline-block w-1 h-1 bg-gray-400 rounded-full animate-pulse"></span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-right font-semibold text-gray-900">
+                            ₵{formatNumberLocale(quote.receiveAmount, 2)}
+                          </td>
+                          <td className="px-4 py-4 text-right text-gray-700">
+                            {formatNumber(quote.rate, 2)}
+                          </td>
+                          <td className="px-4 py-4 text-right text-gray-700">
+                            £{formatNumber(quote.fee, 2)}
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <Link
+                              href={`/go/provider/${quote.providerId}?from=${FROM_CURRENCY}&to=${TO_CURRENCY}&amount=${parseFloat(sendAmount) || 0}`}
+                              className="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition disabled:opacity-50"
+                            >
+                              Send with {provider?.name}
+                            </Link>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-500 mt-3">
+              {`Rates last checked: ${rateFreshnessLabel}`}
+            </p>
+
+            <p className="text-xs text-gray-500 mt-2">
+              Final rates may vary based on payment method, promotions, and provider fees.
+            </p>
+
+            <p className="text-sm text-gray-500 mt-4">
+              Last updated: {formattedLastUpdated}
+            </p>
+          </>
+        ) : (
+          <div className="mt-6 rounded-lg border border-blue-100 bg-blue-50 px-4 py-4 text-sm text-blue-900">
+            This corridor is informational only at the moment. Live comparisons and transfers will be available soon.
           </div>
         )}
-
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-100 border-b">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                    Provider
-                  </th>
-                  <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
-                    You Receive
-                  </th>
-                  <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
-                    Rate
-                  </th>
-                  <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
-                    Fee
-                  </th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {rankQuotes(quotes).map((quote: RankedQuote, index: number) => {
-                  const provider = providers.find((p) => p.id === quote.providerId);
-                  const isLoading = loadingProviders.has(quote.providerId);
-                  // Use semantic key when data is complete, fallback to index
-                  const itemKey = quote.providerId && quote.fromCurrency && quote.toCurrency
-                    ? `${quote.providerId}-${quote.fromCurrency}-${quote.toCurrency}`
-                    : index;
-
-                  return (
-                    <tr
-                      key={itemKey}
-                      className={`hover:bg-gray-50 transition ${
-                        isLoading ? "opacity-75" : ""
-                      }`}
-                    >
-                      <td className="px-4 py-4">
-                        <div className="font-medium text-gray-900 flex items-center gap-2">
-                          {provider?.name || quote.providerId}
-                          {quote.bestRateToday && (
-                            <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                              Best Rate
-                            </span>
-                          )}
-                          {isLoading && (
-                            <span className="inline-block w-1 h-1 bg-gray-400 rounded-full animate-pulse"></span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 text-right font-semibold text-gray-900">
-                        ₵{formatNumberLocale(quote.receiveAmount, 2)}
-                      </td>
-                      <td className="px-4 py-4 text-right text-gray-700">
-                        {formatNumber(quote.rate, 2)}
-                      </td>
-                      <td className="px-4 py-4 text-right text-gray-700">
-                        £{formatNumber(quote.fee, 2)}
-                      </td>
-                      <td className="px-4 py-4 text-right">
-                        <Link
-                          href={`/go/provider/${quote.providerId}?from=${FROM_CURRENCY}&to=${TO_CURRENCY}&amount=${sendAmount}`}
-                          className="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition disabled:opacity-50"
-                        >
-                          Send with {provider?.name}
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <p className="text-sm text-gray-500 mt-4">
-          Last updated: {formattedLastUpdated}
-        </p>
 
         {/* Disclaimer Section */}
         <section className="mt-12 border-t pt-8 bg-amber-50 border-amber-200 rounded-lg p-6 mb-8">
