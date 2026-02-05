@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<browserconfig>
+  <msapplication>
+    <tile>
+      <square150x150logo src="/icons/mstile-150x150.png"/>
+      <TileColor>#2563eb</TileColor>
+    </tile>
+    <notification>
+      <polling-uri src="/notification"/>
+      <polling-uri2 src="/notification?param2=ms-resource://app/resources/en-us/Resources.resjson"/>
+      <polling-uri3 src="/notification?param3=en-us"/>
+      <polling-frequency>30</polling-frequency>
+      <notification-period>7</notification-period>
+    </notification>
+  </msapplication>
+</browserconfig>
