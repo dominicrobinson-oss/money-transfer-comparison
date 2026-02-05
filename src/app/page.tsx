@@ -58,14 +58,40 @@ const currencyInfo: Record<string, { name: string; flag: string }> = {
   USD: { name: "US Dollar", flag: "🇺🇸" },
   EUR: { name: "Euro", flag: "🇪🇺" },
   CAD: { name: "Canadian Dollar", flag: "🇨🇦" },
+  INR: { name: "Indian Rupee", flag: "🇮🇳" },
+  PKR: { name: "Pakistani Rupee", flag: "🇵🇰" },
+  KES: { name: "Kenyan Shilling", flag: "🇰🇪" },
+  PHP: { name: "Philippine Peso", flag: "🇵🇭" },
+  BDT: { name: "Bangladeshi Taka", flag: "🇧🇩" },
+  JPY: { name: "Japanese Yen", flag: "🇯🇵" },
+  AUD: { name: "Australian Dollar", flag: "🇦🇺" },
+  NZD: { name: "New Zealand Dollar", flag: "🇳🇿" },
+  CHF: { name: "Swiss Franc", flag: "🇨🇭" },
+  SGD: { name: "Singapore Dollar", flag: "🇸🇬" },
+  HKD: { name: "Hong Kong Dollar", flag: "🇭🇰" },
+  MXN: { name: "Mexican Peso", flag: "🇲🇽" },
+  BRL: { name: "Brazilian Real", flag: "🇧🇷" },
+  TRY: { name: "Turkish Lira", flag: "🇹🇷" },
+  THB: { name: "Thai Baht", flag: "🇹🇭" },
+  EGP: { name: "Egyptian Pound", flag: "🇪🇬" },
+  LKR: { name: "Sri Lankan Rupee", flag: "🇱🇰" },
+  UGX: { name: "Ugandan Shilling", flag: "🇺🇬" },
+  TZS: { name: "Tanzanian Shilling", flag: "🇹🇿" },
+  RWF: { name: "Rwandan Franc", flag: "🇷🇼" },
+  MAD: { name: "Moroccan Dirham", flag: "🇲🇦" },
+  JMD: { name: "Jamaican Dollar", flag: "🇯🇲" },
+  TTD: { name: "Trinidad & Tobago Dollar", flag: "🇹🇹" },
+  XOF: { name: "West African CFA Franc", flag: "🌍" },
+  XAF: { name: "Central African CFA Franc", flag: "🌍" },
 };
 
 export default function Home() {
   const router = useRouter();
   const [selectedCurrency, setSelectedCurrency] = useState<string>("");
   
-  const activeCurrencies = corridors
-    .filter((c) => c.status === "active")
+  // Include both active and informational corridors
+  const availableCurrencies = corridors
+    .filter((c) => c.status === "active" || c.status === "informational")
     .map((c) => c.toCurrency)
     .filter((value, index, self) => self.indexOf(value) === index); // unique
 
@@ -73,7 +99,7 @@ export default function Home() {
     setSelectedCurrency(currency);
     if (currency) {
       const corridor = corridors.find(
-        (c) => c.toCurrency === currency && c.status === "active"
+        (c) => c.toCurrency === currency && (c.status === "active" || c.status === "informational")
       );
       if (corridor) {
         router.push(`/${corridor.id}`);
@@ -107,11 +133,13 @@ export default function Home() {
               className="block w-full md:w-auto px-4 py-3 text-base border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-md bg-white"
             >
               <option value="">Select currency...</option>
-              {activeCurrencies.map((currency) => {
+              {availableCurrencies.map((currency) => {
                 const info = currencyInfo[currency];
+                const corridor = corridors.find((c) => c.toCurrency === currency);
+                const isActive = corridor?.status === "active";
                 return (
                   <option key={currency} value={currency}>
-                    {info?.flag} {currency} - {info?.name}
+                    {info?.flag} {currency} - {info?.name} {!isActive ? "(Coming Soon)" : ""}
                   </option>
                 );
               })}
