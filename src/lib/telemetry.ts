@@ -3,25 +3,9 @@
  * Tracks anonymous user interactions without collecting PII
  */
 
-export type TelemetryEventType =
-  | "corridor_viewed"
-  | "amount_changed"
-  | "currency_selected"
-  | "provider_clicked";
+import type { TelemetryEventType, TelemetryEvent } from "@/types/core";
 
 export type AmountBucket = "<100" | "100-500" | "500-1000" | "1000+";
-
-export interface TelemetryEvent {
-  eventType: TelemetryEventType;
-  timestamp: string;
-  data: {
-    corridor?: string; // e.g., "GBP-NGN"
-    amountBucket?: AmountBucket;
-    fromCurrency?: string;
-    toCurrency?: string;
-    providerId?: string;
-  };
-}
 
 /**
  * Bucket amount for privacy (no exact amounts logged)

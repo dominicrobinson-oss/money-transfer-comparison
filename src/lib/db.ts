@@ -1,3 +1,302 @@
+/**
+ * Analytics: Get scroll depth distribution for a corridor
+ */
+export function getScrollDepthDistribution(corridor: string): Promise<Array<{ bucket: string; count: number; percent: number }>> {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      SELECT bucket, COUNT(*) as count
+      FROM telemetry_events
+      WHERE eventType = 'scroll_depth' AND corridor = ?
+      GROUP BY bucket
+      ORDER BY count DESC
+    `;
+    db.all(sql, [corridor], (err, rows: any[]) => {
+      if (err) { reject(err); return; }
+      const total = rows.reduce((sum, row) => sum + Number(row.count), 0);
+      const result = rows.map(row => ({
+        bucket: row.bucket,
+        count: Number(row.count),
+        percent: total ? (Number(row.count) / total) * 100 : 0
+      }));
+      resolve(result);
+    });
+  });
+}
+
+/**
+ * Analytics: Get impression to click conversion for top provider
+ */
+export function getTopProviderImpressionConversion(corridor: string): Promise<{ impressions: number; clicks: number; conversionRate: number }> {
+  return new Promise((resolve, reject) => {
+    const sqlImpressions = `
+      SELECT COUNT(*) as impressions
+      FROM telemetry_events
+      WHERE eventType = 'top_provider_impression' AND corridor = ?
+    `;
+    const sqlClicks = `
+      SELECT COUNT(*) as clicks
+      FROM provider_clicks
+      WHERE rankingPosition = 1 AND corridor = ?
+    `;
+    db.get(sqlImpressions, [corridor], (err, row1: { impressions: number }) => {
+      if (err) { reject(err); return; }
+      db.get(sqlClicks, [corridor], (err2, row2: { clicks: number }) => {
+        if (err2) { reject(err2); return; }
+        const impressions = row1?.impressions || 0;
+        const clicks = row2?.clicks || 0;
+        resolve({
+          impressions,
+          clicks,
+          conversionRate: impressions > 0 ? (clicks / impressions) * 100 : 0
+        });
+      });
+    });
+  });
+}
+/**
+ * Analytics: Get ranking drop-off curve (clicks and percent by ranking position)
+ */
+export function getRankingDropoffCurve(): Promise<Array<{ rankingPosition: number; clicks: number; percent: number }>> {
+  type RankingDropoffRow = { rankingPosition: number; clicks: number };
+  return new Promise((resolve, reject) => {
+    const sql = `SELECT rankingPosition, COUNT(*) as clicks FROM provider_clicks WHERE rankingPosition IS NOT NULL GROUP BY rankingPosition ORDER BY rankingPosition ASC`;
+    db.all<RankingDropoffRow>(sql, [], (err, rows) => {
+      if (err) { reject(err); return; }
+      const total = rows.reduce((sum, row) => sum + Number(row.clicks), 0);
+      const result = rows.map(row => ({
+        rankingPosition: Number(row.rankingPosition),
+        clicks: Number(row.clicks),
+        percent: total ? (Number(row.clicks) / total) * 100 : 0
+      }));
+      resolve(result);
+    });
+  });
+}
+
+/**
+ * Analytics: Get signal performance (clicks and percent by signal)
+ */
+export function getSignalPerformance(): Promise<Array<{ signalShown: string; clicks: number; percent: number }>> {
+  type SignalPerformanceRow = { signalShown: string; clicks: number };
+  return new Promise((resolve, reject) => {
+    const sql = `SELECT signalShown, COUNT(*) as clicks FROM provider_clicks WHERE signalShown IS NOT NULL GROUP BY signalShown ORDER BY clicks DESC`;
+    db.all<SignalPerformanceRow>(sql, [], (err, rows) => {
+      if (err) { reject(err); return; }
+      const total = rows.reduce((sum, row) => sum + Number(row.clicks), 0);
+      const result = rows.map(row => ({
+        signalShown: row.signalShown,
+        clicks: Number(row.clicks),
+        percent: total ? (Number(row.clicks) / total) * 100 : 0
+      }));
+      resolve(result);
+    });
+  });
+}
+
+/**
+ * Analytics: Get device CTR breakdown (clicks by device type)
+ */
+export function getDeviceCTRBreakdown(): Promise<Array<{ deviceType: string; clicks: number }>> {
+  type DeviceCTRBreakdownRow = { deviceType: string; clicks: number };
+  return new Promise((resolve, reject) => {
+    const sql = `SELECT deviceType, COUNT(*) as clicks FROM provider_clicks WHERE deviceType IS NOT NULL GROUP BY deviceType ORDER BY clicks DESC`;
+    db.all<DeviceCTRBreakdownRow>(sql, [], (err, rows) => {
+      if (err) { reject(err); return; }
+      resolve(rows.map(row => ({ deviceType: row.deviceType, clicks: Number(row.clicks) })));
+    });
+  });
+}
+/**
+ * Analytics: Get capture rates for top ranked providers (rank #1, #2, #3+)
+ */
+export async function getTopRankedProviderCaptureRates(): Promise<{
+  rank1: { count: number; percent: number };
+  rank2: { count: number; percent: number };
+  rank3plus: { count: number; percent: number };
+  total: number;
+}> {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      SELECT rankingPosition, COUNT(*) as clicks
+      FROM provider_clicks
+      WHERE rankingPosition IS NOT NULL
+      GROUP BY rankingPosition
+    `;
+    db.all(sql, [], (err, rows: any[]) => {
+      if (err) { reject(err); return; }
+      let rank1 = 0, rank2 = 0, rank3plus = 0, total = 0;
+      rows.forEach(row => {
+        const pos = Number(row.rankingPosition);
+        const clicks = Number(row.clicks);
+        if (pos === 1) rank1 += clicks;
+        else if (pos === 2) rank2 += clicks;
+        else if (pos >= 3) rank3plus += clicks;
+        total += clicks;
+      });
+      resolve({
+        rank1: { count: rank1, percent: total ? (rank1 / total) * 100 : 0 },
+        rank2: { count: rank2, percent: total ? (rank2 / total) * 100 : 0 },
+        rank3plus: { count: rank3plus, percent: total ? (rank3plus / total) * 100 : 0 },
+        total
+      });
+    });
+  });
+}
+/**
+ * Analytics: Get conversion rate by signal type
+ */
+export function getConversionRateBySignal(): Promise<Array<{ signalShown: string; clicks: number }>> {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      SELECT signalShown, COUNT(*) as clicks
+      FROM provider_clicks
+      WHERE signalShown IS NOT NULL
+      GROUP BY signalShown
+      ORDER BY clicks DESC
+    `;
+    db.all(sql, [], (err, rows: any[]) => {
+      if (err) { reject(err); return; }
+      resolve(rows || []);
+    });
+  });
+}
+
+/**
+ * Analytics: Get clicks by ranking position
+ */
+export function getClicksByRankingPosition(): Promise<Array<{ rankingPosition: number; clicks: number }>> {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      SELECT rankingPosition, COUNT(*) as clicks
+      FROM provider_clicks
+      WHERE rankingPosition IS NOT NULL
+      GROUP BY rankingPosition
+      ORDER BY rankingPosition ASC
+    `;
+    db.all(sql, [], (err, rows: any[]) => {
+      if (err) { reject(err); return; }
+      resolve(rows || []);
+    });
+  });
+}
+
+/**
+ * Analytics: Get mobile vs desktop CTR
+ */
+export function getClicksByDeviceType(): Promise<Array<{ deviceType: string; clicks: number }>> {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      SELECT deviceType, COUNT(*) as clicks
+      FROM provider_clicks
+      WHERE deviceType IS NOT NULL
+      GROUP BY deviceType
+      ORDER BY clicks DESC
+    `;
+    db.all(sql, [], (err, rows: any[]) => {
+      if (err) { reject(err); return; }
+      resolve(rows || []);
+    });
+  });
+}
+/**
+ * Analytics: Get daily view counts grouped by date
+ */
+export function getDailyViewCounts(): Promise<Array<{ date: string; views: number }>> {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      SELECT strftime('%Y-%m-%d', createdAt) as date, COUNT(*) as views
+      FROM telemetry_events
+      WHERE eventType = 'corridor_view'
+      GROUP BY date
+      ORDER BY date DESC
+      LIMIT 30
+    `;
+    db.all(sql, [], (err, rows: any[]) => {
+      if (err) { reject(err); return; }
+      resolve(rows || []);
+    });
+  });
+}
+
+/**
+ * Analytics: Get daily click counts grouped by date
+ */
+export function getDailyClickCounts(): Promise<Array<{ date: string; clicks: number }>> {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      SELECT strftime('%Y-%m-%d', createdAt) as date, COUNT(*) as clicks
+      FROM provider_clicks
+      GROUP BY date
+      ORDER BY date DESC
+      LIMIT 30
+    `;
+    db.all(sql, [], (err, rows: any[]) => {
+      if (err) { reject(err); return; }
+      resolve(rows || []);
+    });
+  });
+}
+
+/**
+ * Analytics: Get daily conversion rates (clicks/views) grouped by date
+ */
+export async function getDailyConversionRates(): Promise<Array<{ date: string; views: number; clicks: number; conversionRate: number }>> {
+  const views = await getDailyViewCounts();
+  const clicks = await getDailyClickCounts();
+  const byDate: Record<string, { views: number; clicks: number }> = {};
+  views.forEach(v => { byDate[v.date] = { views: v.views, clicks: 0 }; });
+  clicks.forEach(c => {
+    if (!byDate[c.date]) byDate[c.date] = { views: 0, clicks: 0 };
+    byDate[c.date].clicks = c.clicks;
+  });
+  return Object.entries(byDate).map(([date, { views, clicks }]) => ({
+    date,
+    views,
+    clicks,
+    conversionRate: views > 0 ? clicks / views : 0,
+  })).sort((a, b) => b.date.localeCompare(a.date));
+}
+
+/**
+ * Analytics: Get top corridors by views in the last 7 days
+ */
+export function getTopCorridors7d(): Promise<Array<{ corridor: string; views: number }>> {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      SELECT corridor, COUNT(*) as views
+      FROM telemetry_events
+      WHERE eventType = 'corridor_view' AND corridor IS NOT NULL
+        AND date(createdAt) >= date('now', '-7 days')
+      GROUP BY corridor
+      ORDER BY views DESC
+      LIMIT 10
+    `;
+    db.all(sql, [], (err, rows: any[]) => {
+      if (err) { reject(err); return; }
+      resolve(rows || []);
+    });
+  });
+}
+
+/**
+ * Analytics: Get top providers by clicks in the last 7 days
+ */
+export function getTopProviders7d(): Promise<Array<{ providerId: string; clicks: number }>> {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      SELECT providerId, COUNT(*) as clicks
+      FROM provider_clicks
+      WHERE date(createdAt) >= date('now', '-7 days')
+      GROUP BY providerId
+      ORDER BY clicks DESC
+      LIMIT 10
+    `;
+    db.all(sql, [], (err, rows: any[]) => {
+      if (err) { reject(err); return; }
+      resolve(rows || []);
+    });
+  });
+}
 import fs from "fs";
 import path from "path";
 import sqlite3 from "sqlite3";
@@ -76,6 +375,10 @@ export interface ProviderClickRecord {
   fromCurrency: string;
   toCurrency: string;
   amount: number;
+  corridor?: string;
+  rankingPosition?: number;
+  signalShown?: string;
+  deviceType?: string;
   userAgent: string;
   referrer: string | null;
   createdAt: string; // ISO string
@@ -87,10 +390,14 @@ const insertSql = `
     fromCurrency,
     toCurrency,
     amount,
+    corridor,
+    rankingPosition,
+    signalShown,
+    deviceType,
     userAgent,
     referrer,
     createdAt
-  ) VALUES (?, ?, ?, ?, ?, ?, ?)
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
 export function logProviderClick(clickRecord: ProviderClickRecord): Promise<void> {
@@ -102,6 +409,10 @@ export function logProviderClick(clickRecord: ProviderClickRecord): Promise<void
         clickRecord.fromCurrency,
         clickRecord.toCurrency,
         clickRecord.amount,
+        clickRecord.corridor || null,
+        clickRecord.rankingPosition ?? null,
+        clickRecord.signalShown || null,
+        clickRecord.deviceType || null,
         clickRecord.userAgent,
         clickRecord.referrer,
         clickRecord.createdAt,
@@ -109,9 +420,9 @@ export function logProviderClick(clickRecord: ProviderClickRecord): Promise<void
       (err) => {
         if (err) {
           reject(err);
-          return;
+        } else {
+          resolve();
         }
-        resolve();
       }
     );
   });
