@@ -1,3 +1,68 @@
+// Strict union of all telemetry event types used in the app
+export type TelemetryEventType =
+  | "corridor_view"
+  | "provider_click"
+  | "cta_click"
+  | "amount_input"
+  | "currency_select"
+  | "sort_change"
+  | "filter_change"
+  | "tab_change"
+  | "install_pwa"
+  | "share"
+  | "copy"
+  | "faq_toggle"
+  | "rate_alert_create"
+  | "rate_alert_delete"
+  | "rate_alert_trigger"
+  | "feedback_submit"
+  | "error"
+  | "impression"
+  | "top_provider_impression"
+  | "top_ranked_provider_click"
+  | "signal_click"
+  | "signal_impression"
+  | "signal_conversion"
+  | "device_type_detected"
+  | "page_load"
+  | "page_unload"
+  | "api_error"
+  | "api_success"
+  | "api_request"
+  | "api_response"
+  | "api_latency"
+  | "api_timeout"
+  | "api_retry"
+  | "api_rate_limit"
+  | "api_cache_hit"
+  | "api_cache_miss"
+  | "api_cache_stale"
+  | "api_cache_refresh"
+  | "api_cache_clear"
+  | "api_cache_error"
+  | "api_cache_success"
+  | "api_cache_request"
+  | "api_cache_response"
+  | "api_cache_latency"
+  | "api_cache_timeout"
+  | "api_cache_retry"
+  | "api_cache_rate_limit"
+  | "api_cache_stale_refresh"
+  | "api_cache_stale_clear"
+  | "api_cache_stale_error"
+  | "api_cache_stale_success"
+  | "api_cache_stale_request"
+  | "api_cache_stale_response"
+  | "api_cache_stale_latency"
+  | "api_cache_stale_timeout"
+  | "api_cache_stale_retry"
+  | "api_cache_stale_rate_limit"
+  | "scroll_depth"
+  | "top_provider_impression"
+  | "corridor_viewed"
+  | "amount_changed"
+  | "currency_selected"
+  | "provider_clicked";
 // Core type definitions for money transfer comparison app
 
 export type TransferMethod = "bank" | "card" | "cash" | "wallet";
@@ -63,13 +128,20 @@ export interface Quote {
   source?: "live" | "mock";
 }
 
-export interface ProviderRating {
-  providerId: string;
-  trustpilotScore: number | null;
-  trustpilotReviews: number | null;
-  googleRating: number | null;
-  googleReviews: number | null;
-  lastUpdated: string; // ISO string
+// TelemetryEvent interface with flexible data property
+export interface TelemetryEvent {
+  eventType: TelemetryEventType;
+  timestamp: string;
+  data: {
+    corridor?: string;
+    amountBucket?: string;
+    fromCurrency?: string;
+    toCurrency?: string;
+    providerId?: string;
+    bucket?: string;
+    rankingPosition?: number;
+    [key: string]: unknown;
+  };
 }
 
 export interface ProviderClick {
