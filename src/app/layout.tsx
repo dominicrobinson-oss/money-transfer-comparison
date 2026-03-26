@@ -4,6 +4,7 @@ import "./globals.css";
 import PWAInit from "@/components/PWAInit";
 import InstallBanner from "@/components/InstallBanner";
 import Footer from "@/components/Footer";
+import Analytics from "@/components/Analytics";
 
 export const metadata: Metadata = {
   title: "Money Transfer Comparison - Compare GBP Rates",
@@ -65,16 +66,31 @@ export default function RootLayout({
         
         {/* Manifest */}
         <link rel="manifest" href="/manifest.json" />
-        
+
+        {/* Open Graph Meta Tags */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://money-transfer-comparison.com" />
+        <meta property="og:title" content="Money Transfer Comparison" />
+        <meta property="og:description" content="Compare and save on international money transfers" />
+        <meta property="og:image" content="/icons/icon-512.png" />
+
+        {/* Twitter Meta Tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content="@yourtwitterhandle" />
+        <meta name="twitter:title" content="Money Transfer Comparison" />
+        <meta name="twitter:description" content="Compare and save on international money transfers" />
+        <meta name="twitter:image" content="/icons/icon-512.png" />
+
         {/* Microsoft Tile */}
         <meta name="msapplication-TileColor" content="#2563eb" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
-        
+
         {/* Preconnect to external resources */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body>
+        <Analytics />
         {children}
         <PWAInit />
         <InstallBanner />

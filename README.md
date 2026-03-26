@@ -9,12 +9,18 @@ A mobile-first web application for comparing money transfer services from GBP to
 - **Backend:** Next.js API Routes
 - **Database:** SQLite (development) / PostgreSQL (production ready)
 
+
 ## Features
 
 - Compare real-time transfer rates for GBP → NGN
 - View fees, exchange rates, and transfer speeds
+- Provider logos with image optimization
+- User-friendly 404 and loading states
 - Redirect to provider websites
 - Mobile-first responsive design
+- Accessibility and ARIA improvements
+- SEO meta tags (Open Graph, Twitter)
+- Privacy-friendly analytics (Plausible)
 - No authentication or payment processing
 
 ## Getting Started
@@ -112,6 +118,10 @@ money-transfer-comparison/
 - [x] Mock provider data
 - [x] Comparison logic
 - [x] API routes
+- [x] User-friendly error and loading states
+- [x] Provider logos and image optimization
+- [x] Accessibility and SEO improvements
+- [x] Privacy-friendly analytics
 - [ ] Database integration (SQLite/PostgreSQL)
 - [ ] UI components
 - [ ] Mobile-responsive design

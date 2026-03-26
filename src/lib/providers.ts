@@ -4,6 +4,7 @@ export const providers: Provider[] = [
   {
     id: "wise",
     name: "Wise",
+    logo: "/icons/providers/wise.png",
     websiteUrl: "https://wise.com",
     redirectStrategy: "homepage",
     supportsNGN: true,
@@ -15,6 +16,7 @@ export const providers: Provider[] = [
   {
     id: "remitly",
     name: "Remitly",
+    logo: "/icons/providers/remitly.png",
     websiteUrl: "https://www.remitly.com",
     redirectStrategy: "homepage",
     supportsNGN: true,
@@ -26,6 +28,7 @@ export const providers: Provider[] = [
   {
     id: "sendwave",
     name: "Sendwave",
+    logo: "/icons/providers/sendwave.png",
     websiteUrl: "https://www.sendwave.com",
     redirectStrategy: "homepage",
     supportsNGN: true,

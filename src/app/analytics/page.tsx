@@ -61,10 +61,14 @@ export default async function AnalyticsPage() {
   
     // Enrich corridor CTR data with status from corridors registry
     const enrichedCorridorCTRs = corridorCTRs.map((ctr) => {
-      const corridor = corridors.find((c) => c.id === ctr.corridor);
+      // Assume ctr.corridor is a string like "gbp-ngn"
+      const [fromCurrency, toCurrency] = ctr.corridor.split("-");
+      const corridor = corridors.find(
+        (c) => c.fromCurrency === fromCurrency && c.toCurrency === toCurrency
+      );
       return {
         ...ctr,
-        status: corridor?.status || "unknown",
+        // No status property in new corridor structure
       };
     });
 

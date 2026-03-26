@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postbuild": "next-sitemap",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
@@ -16,7 +17,8 @@
     "seed:live-quotes": "npx tsx src/scripts/seed-live-quotes.ts"
   },
   "dependencies": {
-    "next": "^15.1.6",
+    "next": "^16.2.1",
+    "next-sitemap": "^4.2.3",
     "playwright": "^1.58.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

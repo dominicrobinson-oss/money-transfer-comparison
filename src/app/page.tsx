@@ -89,9 +89,8 @@ export default function Home() {
   const router = useRouter();
   const [selectedCurrency, setSelectedCurrency] = useState<string>("");
   
-  // Include both active and informational corridors
+  // List all available corridors
   const availableCurrencies = corridors
-    .filter((c) => c.status === "active" || c.status === "informational")
     .map((c) => c.toCurrency)
     .filter((value, index, self) => self.indexOf(value) === index); // unique
 
@@ -99,10 +98,10 @@ export default function Home() {
     setSelectedCurrency(currency);
     if (currency) {
       const corridor = corridors.find(
-        (c) => c.toCurrency === currency && (c.status === "active" || c.status === "informational")
+        (c) => c.toCurrency === currency
       );
       if (corridor) {
-        router.push(`/${corridor.id}`);
+        router.push(`/${corridor.fromCurrency}-to-${corridor.toCurrency}`);
       }
     }
   };
@@ -135,11 +134,9 @@ export default function Home() {
               <option value="">Select currency...</option>
               {availableCurrencies.map((currency) => {
                 const info = currencyInfo[currency];
-                const corridor = corridors.find((c) => c.toCurrency === currency);
-                const isActive = corridor?.status === "active";
                 return (
                   <option key={currency} value={currency}>
-                    {info?.flag} {currency} - {info?.name} {!isActive ? "(Coming Soon)" : ""}
+                    {info?.flag} {currency} - {info?.name}
                   </option>
                 );
               })}
